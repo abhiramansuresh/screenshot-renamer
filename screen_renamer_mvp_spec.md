@@ -1,4 +1,4 @@
-# Screenshot Renamer — MVP Spec (macOS)
+# Screen Renamer — MVP Spec (macOS)
 
 ## Vision
 
@@ -36,7 +36,7 @@ without any user interaction.
 
 - Build as a fresh native Xcode SwiftUI macOS project.
 - Minimum supported macOS version: macOS 13+.
-- Bundle identifier: `com.amorphicLabs.ScreenshotRenamer`.
+- Bundle identifier: `com.amorphicLabs.ScreenshotRenamer` (kept as the legacy identifier so macOS Accessibility permissions continue to match after the product rename).
 - Enable automatic launch at login for the MVP.
 - Watch the Desktop by default and support the user's custom screenshot save location when macOS exposes one through `com.apple.screencapture`.
 
@@ -280,7 +280,7 @@ debugged from the user's machine.
 Log file:
 
 ```text
-~/Library/Application Support/ScreenshotRenamer/debug.log
+~/Library/Application Support/Screen Renamer/debug.log
 ```
 
 The menu bar UI should expose:
@@ -793,7 +793,7 @@ Minimal menu bar utility.
 Menu:
 
 ```text
-Screenshot Renamer ✓
+Screen Renamer ✓
 
 Pause Renaming
 Resume Renaming
@@ -816,7 +816,7 @@ If Accessibility permission missing:
 Explain briefly:
 
 ```text
-Enable Accessibility access so Screenshot Renamer
+Enable Accessibility access so Screen Renamer
 can detect the active app and window title.
 ```
 
@@ -847,7 +847,7 @@ Context buffer:
 # Suggested Project Structure
 
 ```text
-ScreenshotRenamer/
+Screen Renamer/
 ├── App/
 ├── Services/
 │   ├── ContextTracker.swift

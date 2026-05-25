@@ -3,7 +3,7 @@ import SwiftUI
 
 @main
 @MainActor
-struct ScreenshotRenamerApp: App {
+struct ScreenRenamerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var controller = AppController.shared
     @AppStorage(AppController.menuBarItemVisibleKey) private var isMenuBarItemVisible = true

@@ -17,8 +17,8 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "D00000000000000000000001"
                BuildableName = "Screen Renamer.app"
-               BlueprintName = "ScreenshotRenamer"
-               ReferencedContainer = "container:ScreenshotRenamer.xcodeproj">
+               BlueprintName = "Screen Renamer"
+               ReferencedContainer = "container:Screen Renamer.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -47,8 +47,8 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D00000000000000000000001"
             BuildableName = "Screen Renamer.app"
-            BlueprintName = "ScreenshotRenamer"
-            ReferencedContainer = "container:ScreenshotRenamer.xcodeproj">
+            BlueprintName = "Screen Renamer"
+            ReferencedContainer = "container:Screen Renamer.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -64,8 +64,8 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D00000000000000000000001"
             BuildableName = "Screen Renamer.app"
-            BlueprintName = "ScreenshotRenamer"
-            ReferencedContainer = "container:ScreenshotRenamer.xcodeproj">
+            BlueprintName = "Screen Renamer"
+            ReferencedContainer = "container:Screen Renamer.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

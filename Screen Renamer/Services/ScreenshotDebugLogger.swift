@@ -17,7 +17,7 @@ enum ScreenshotDebugLogger {
             }
             try handle.close()
         } catch {
-            NSLog("ScreenshotRenamer debug log failed: %@", error.localizedDescription)
+            NSLog("Screen Renamer debug log failed: %@", error.localizedDescription)
         }
     }
 
@@ -36,7 +36,7 @@ enum ScreenshotDebugLogger {
             try Data().write(to: logURL)
             log("debug_log_cleared")
         } catch {
-            NSLog("ScreenshotRenamer debug log clear failed: %@", error.localizedDescription)
+            NSLog("Screen Renamer debug log clear failed: %@", error.localizedDescription)
         }
     }
 
@@ -44,7 +44,7 @@ enum ScreenshotDebugLogger {
         let applicationSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support", isDirectory: true)
 
-        return applicationSupportURL.appendingPathComponent("ScreenshotRenamer", isDirectory: true)
+        return applicationSupportURL.appendingPathComponent("Screen Renamer", isDirectory: true)
     }
 
     private static func formattedLine(event: String, fields: [String: String]) -> String {
