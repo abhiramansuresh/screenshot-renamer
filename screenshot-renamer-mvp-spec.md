@@ -312,28 +312,17 @@ Match screenshot to the correct app/window context.
 
 When screenshot appears:
 
-Read the default screenshot filename timestamp.
+Read the file creation date with `FileManager.default.attributesOfItem`.
 
 Compare against context buffer.
 
-Treat filename timestamps as a one-second capture bucket.
+Use the file creation date as the primary match timestamp because it includes
+sub-second precision and is attached to the file that macOS actually created.
 
-Default screenshot filenames only include seconds, not milliseconds. A file
-named `Screenshot ... at 10.00.01` could have been captured any time from
-`10:00:01.000` through `10:00:01.999`.
+If the file creation date is unavailable, fall back to parsing the default
+screenshot filename timestamp.
 
-When a filename timestamp is available:
-
-- first look for context entries inside that one-second bucket
-- read the file creation and modification timestamps for millisecond precision
-- if either file timestamp is also inside that bucket, use it as a reference
-  point and choose the closest context inside the bucket
-- if the file timestamp is outside the bucket, choose the latest context inside
-  the bucket
-- if there is no context inside the bucket, choose the latest context just
-  before the bucket start
-- fall back to nearest timestamp matching only when the bucket-based fallbacks
-  have no usable context
+Choose the app/window context closest to the selected timestamp.
 
 ### Example
 

@@ -278,7 +278,7 @@ final class ScreenshotWatcher {
 
         let captureTime = screenshotCaptureTime(for: fileURL)
         let context = screenshotContext(for: captureTime)
-            ?? AppContext(timestamp: captureTime.fallbackTimestamp, appName: "Screenshot", windowTitle: nil)
+            ?? AppContext(timestamp: captureTime.timestamp, appName: "Screenshot", windowTitle: nil)
         let destinationURL = filenameGenerator.destinationURL(for: fileURL, context: context)
 
         ScreenshotDebugLogger.log("process_resolved", fields: [
