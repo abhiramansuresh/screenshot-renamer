@@ -64,6 +64,21 @@ final class AppController: ObservableObject {
         screenshotWatcher.refreshLocations()
     }
 
+    func openDebugLog() {
+        do {
+            try ScreenshotDebugLogger.ensureLogFileExists()
+            NSWorkspace.shared.open(ScreenshotDebugLogger.logURL)
+            lastStatus = "Opened debug log"
+        } catch {
+            lastStatus = "Could not open debug log"
+        }
+    }
+
+    func clearDebugLog() {
+        ScreenshotDebugLogger.clear()
+        lastStatus = "Cleared debug log"
+    }
+
     func hideMenuBarItem() {
         let alert = NSAlert()
         alert.messageText = "Hide Menu Bar Icon?"

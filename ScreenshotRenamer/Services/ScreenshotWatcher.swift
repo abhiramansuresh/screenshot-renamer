@@ -10,6 +10,8 @@ final class ScreenshotWatcher {
 
     private var watchers: [DirectoryWatcher] = []
     private var watchedDirectories: [URL] = []
+    // Paths that already existed before watching/resuming. Newly detected screenshots
+    // stay pending only, so a recreated native filename can still be processed.
     private var knownScreenshotPaths = Set<String>()
     private var pendingScreenshotPaths = Set<String>()
     private var locationRefreshTimer: Timer?
@@ -34,11 +36,15 @@ final class ScreenshotWatcher {
     func start() {
         guard !isRunning else { return }
         isRunning = true
+        ScreenshotDebugLogger.log("watcher_start")
         rebuildWatchers(markExistingScreenshots: true)
         startLocationRefreshTimer()
     }
 
     func pause() {
+        ScreenshotDebugLogger.log("watcher_pause", fields: [
+            "pending_count": "\(pendingScreenshotPaths.count)"
+        ])
         isPaused = true
         pendingScreenshotPaths.removeAll()
         markExistingScreenshots()
@@ -47,13 +53,18 @@ final class ScreenshotWatcher {
 
     func resume() {
         isPaused = false
+        ScreenshotDebugLogger.log("watcher_resume")
         markExistingScreenshots()
         onStatusChange("Watching for screenshots")
     }
 
     func refreshLocations() {
         guard isRunning else {
-            onLocationsChange(ScreenshotLocationResolver.screenshotDirectories())
+            let directories = ScreenshotLocationResolver.screenshotDirectories()
+            ScreenshotDebugLogger.log("locations_refresh_before_start", fields: [
+                "directories": directories.debugPathList
+            ])
+            onLocationsChange(directories)
             return
         }
 
@@ -77,6 +88,10 @@ final class ScreenshotWatcher {
         let latestDirectories = ScreenshotLocationResolver.screenshotDirectories()
 
         guard latestDirectories.standardizedPaths != watchedDirectories.standardizedPaths else {
+            ScreenshotDebugLogger.log("locations_unchanged", fields: [
+                "announce": "\(announceUnchanged)",
+                "directories": watchedDirectories.debugPathList
+            ])
             if announceUnchanged {
                 onLocationsChange(watchedDirectories)
                 onStatusChange(isPaused ? "Renaming paused" : "Watching for screenshots")
@@ -84,6 +99,10 @@ final class ScreenshotWatcher {
             return
         }
 
+        ScreenshotDebugLogger.log("locations_changed", fields: [
+            "old": watchedDirectories.debugPathList,
+            "new": latestDirectories.debugPathList
+        ])
         rebuildWatchers(
             markExistingScreenshots: true,
             statusMessage: latestDirectories.isEmpty ? "No screenshot folder found" : "Updated screenshot folder"
@@ -91,6 +110,9 @@ final class ScreenshotWatcher {
     }
 
     private func rebuildWatchers(markExistingScreenshots: Bool, statusMessage: String? = nil) {
+        ScreenshotDebugLogger.log("watchers_rebuild_begin", fields: [
+            "mark_existing": "\(markExistingScreenshots)"
+        ])
         watchers.forEach { $0.cancel() }
         watchers.removeAll()
 
@@ -102,15 +124,31 @@ final class ScreenshotWatcher {
                 self?.handleDirectoryChange(changedDirectoryURL)
             }) {
                 watchers.append(watcher)
+                ScreenshotDebugLogger.log("watcher_created", fields: [
+                    "directory": directoryURL.path
+                ])
+            } else {
+                ScreenshotDebugLogger.log("watcher_create_failed", fields: [
+                    "directory": directoryURL.path
+                ])
             }
 
             scanDirectory(directoryURL, markExistingScreenshots: markExistingScreenshots)
         }
 
+        ScreenshotDebugLogger.log("watchers_rebuild_end", fields: [
+            "watcher_count": "\(watchers.count)",
+            "directories": watchedDirectories.debugPathList
+        ])
         onStatusChange(statusMessage ?? (watchedDirectories.isEmpty ? "No screenshot folder found" : "Watching for screenshots"))
     }
 
     private func handleDirectoryChange(_ directoryURL: URL) {
+        ScreenshotDebugLogger.log("directory_changed", fields: [
+            "directory": directoryURL.path,
+            "paused": "\(isPaused)"
+        ])
+
         if isPaused {
             scanDirectory(directoryURL, markExistingScreenshots: true)
             return
@@ -126,34 +164,81 @@ final class ScreenshotWatcher {
     }
 
     private func scanDirectory(_ directoryURL: URL, markExistingScreenshots: Bool) {
-        guard let fileURLs = try? fileManager.contentsOfDirectory(
-            at: directoryURL,
-            includingPropertiesForKeys: [.isRegularFileKey, .creationDateKey, .contentModificationDateKey],
-            options: [.skipsHiddenFiles]
-        ) else {
+        let fileURLs: [URL]
+
+        do {
+            fileURLs = try fileManager.contentsOfDirectory(
+                at: directoryURL,
+                includingPropertiesForKeys: [.isRegularFileKey],
+                options: [.skipsHiddenFiles]
+            )
+        } catch {
+            ScreenshotDebugLogger.log("scan_failed", fields: [
+                "directory": directoryURL.path,
+                "error": error.localizedDescription
+            ])
             return
         }
 
-        for fileURL in fileURLs where isScreenshotCandidate(fileURL) {
+        var candidateCount = 0
+        ScreenshotDebugLogger.log("scan_begin", fields: [
+            "directory": directoryURL.path,
+            "file_count": "\(fileURLs.count)",
+            "mark_existing": "\(markExistingScreenshots)"
+        ])
+
+        for fileURL in fileURLs {
+            guard isScreenshotCandidate(fileURL) else {
+                if fileURL.lastPathComponent.hasPrefix("Screenshot") {
+                    ScreenshotDebugLogger.log("scan_skip_not_candidate", fields: [
+                        "file": fileURL.lastPathComponent,
+                        "reason": screenshotCandidateRejectionReason(for: fileURL) ?? "unknown"
+                    ])
+                }
+                continue
+            }
+
+            candidateCount += 1
             let path = fileURL.standardizedFileURL.path
 
             if markExistingScreenshots {
                 knownScreenshotPaths.insert(path)
+                ScreenshotDebugLogger.log("scan_mark_existing", fields: [
+                    "file": fileURL.lastPathComponent
+                ])
                 continue
             }
 
-            guard !knownScreenshotPaths.contains(path), !pendingScreenshotPaths.contains(path) else {
+            if knownScreenshotPaths.contains(path) {
+                ScreenshotDebugLogger.log("scan_skip_known", fields: [
+                    "file": fileURL.lastPathComponent
+                ])
+                continue
+            }
+
+            if pendingScreenshotPaths.contains(path) {
+                ScreenshotDebugLogger.log("scan_skip_pending", fields: [
+                    "file": fileURL.lastPathComponent
+                ])
                 continue
             }
 
             scheduleProcessing(for: fileURL)
         }
+
+        ScreenshotDebugLogger.log("scan_end", fields: [
+            "directory": directoryURL.path,
+            "candidate_count": "\(candidateCount)"
+        ])
     }
 
     private func scheduleProcessing(for fileURL: URL) {
         let path = fileURL.standardizedFileURL.path
-        knownScreenshotPaths.insert(path)
         pendingScreenshotPaths.insert(path)
+        ScreenshotDebugLogger.log("process_scheduled", fields: [
+            "file": fileURL.lastPathComponent,
+            "delay_seconds": "0.8"
+        ])
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
             self?.processScreenshot(at: fileURL, originalPath: path)
@@ -162,8 +247,32 @@ final class ScreenshotWatcher {
 
     private func processScreenshot(at fileURL: URL, originalPath: String) {
         pendingScreenshotPaths.remove(originalPath)
+        ScreenshotDebugLogger.log("process_begin", fields: [
+            "file": fileURL.lastPathComponent,
+            "original_path": originalPath
+        ])
 
-        guard !isPaused, fileManager.fileExists(atPath: fileURL.path), isScreenshotCandidate(fileURL) else {
+        guard !isPaused else {
+            ScreenshotDebugLogger.log("process_skip", fields: [
+                "file": fileURL.lastPathComponent,
+                "reason": "paused"
+            ])
+            return
+        }
+
+        guard fileManager.fileExists(atPath: fileURL.path) else {
+            ScreenshotDebugLogger.log("process_skip", fields: [
+                "file": fileURL.lastPathComponent,
+                "reason": "file_missing"
+            ])
+            return
+        }
+
+        guard isScreenshotCandidate(fileURL) else {
+            ScreenshotDebugLogger.log("process_skip", fields: [
+                "file": fileURL.lastPathComponent,
+                "reason": screenshotCandidateRejectionReason(for: fileURL) ?? "not_candidate"
+            ])
             return
         }
 
@@ -172,57 +281,73 @@ final class ScreenshotWatcher {
             ?? AppContext(timestamp: captureTime.fallbackTimestamp, appName: "Screenshot", windowTitle: nil)
         let destinationURL = filenameGenerator.destinationURL(for: fileURL, context: context)
 
-        guard destinationURL.standardizedFileURL != fileURL.standardizedFileURL else { return }
+        ScreenshotDebugLogger.log("process_resolved", fields: [
+            "file": fileURL.lastPathComponent,
+            "capture": captureTime.debugDescription,
+            "context_app": context.appName,
+            "context_title": context.windowTitle ?? "",
+            "destination": destinationURL.lastPathComponent
+        ])
+
+        guard destinationURL.standardizedFileURL != fileURL.standardizedFileURL else {
+            ScreenshotDebugLogger.log("process_skip", fields: [
+                "file": fileURL.lastPathComponent,
+                "reason": "destination_matches_original"
+            ])
+            return
+        }
+
+        ScreenshotDebugLogger.log("move_attempt", fields: [
+            "from": fileURL.lastPathComponent,
+            "to": destinationURL.lastPathComponent
+        ])
 
         do {
             try fileManager.moveItem(at: fileURL, to: destinationURL)
+            ScreenshotDebugLogger.log("move_success", fields: [
+                "from": fileURL.lastPathComponent,
+                "to": destinationURL.lastPathComponent
+            ])
             onStatusChange("Renamed \(destinationURL.lastPathComponent)")
         } catch {
+            ScreenshotDebugLogger.log("move_failed", fields: [
+                "file": fileURL.lastPathComponent,
+                "destination": destinationURL.lastPathComponent,
+                "error": error.localizedDescription
+            ])
             onStatusChange("Could not rename \(fileURL.lastPathComponent)")
         }
     }
 
     private func isScreenshotCandidate(_ fileURL: URL) -> Bool {
-        guard fileURL.lastPathComponent.hasPrefix("Screenshot") else { return false }
+        screenshotCandidateRejectionReason(for: fileURL) == nil
+    }
 
+    private func screenshotCandidateRejectionReason(for fileURL: URL) -> String? {
+        guard fileURL.lastPathComponent.hasPrefix("Screenshot") else { return "name_prefix" }
         let supportedExtensions = ["png", "jpg", "jpeg", "heic", "tiff", "pdf"]
-        guard supportedExtensions.contains(fileURL.pathExtension.lowercased()) else { return false }
+        guard supportedExtensions.contains(fileURL.pathExtension.lowercased()) else { return "extension" }
 
         let values = try? fileURL.resourceValues(forKeys: [.isRegularFileKey])
-        return values?.isRegularFile == true
+        guard values?.isRegularFile == true else { return "not_regular_file" }
+
+        return nil
     }
 
     private func screenshotContext(for captureTime: ScreenshotCaptureTime) -> AppContext? {
-        if let filenameBucket = captureTime.filenameBucket,
-           let context = contextTracker.context(
-            during: filenameBucket,
-            referenceDate: captureTime.bucketReferenceTimestamp
-           ) {
-            return context
-        }
-
-        return contextTracker.context(closestTo: captureTime.fallbackTimestamp)
+        contextTracker.context(closestTo: captureTime.timestamp)
     }
 
     private func screenshotCaptureTime(for fileURL: URL) -> ScreenshotCaptureTime {
-        let filenameDate = screenshotFilenameDate(for: fileURL)
-        let resourceDate = resourceDate(for: fileURL)
-        let filenameBucket = filenameDate.map { DateInterval(start: $0, duration: 1) }
-        let bucketReferenceTimestamp = filenameBucket.flatMap { bucket -> Date? in
-            guard let resourceDate,
-                  resourceDate >= bucket.start,
-                  resourceDate < bucket.end else {
-                return nil
-            }
-
-            return resourceDate
+        if let creationDate = fileCreationDate(for: fileURL) {
+            return ScreenshotCaptureTime(timestamp: creationDate, source: .fileCreationDate)
         }
 
-        return ScreenshotCaptureTime(
-            fallbackTimestamp: filenameDate ?? resourceDate ?? Date(),
-            filenameBucket: filenameBucket,
-            bucketReferenceTimestamp: bucketReferenceTimestamp
-        )
+        if let filenameDate = screenshotFilenameDate(for: fileURL) {
+            return ScreenshotCaptureTime(timestamp: filenameDate, source: .filename)
+        }
+
+        return ScreenshotCaptureTime(timestamp: Date(), source: .currentDate)
     }
 
     private func screenshotFilenameDate(for fileURL: URL) -> Date? {
@@ -234,9 +359,12 @@ final class ScreenshotWatcher {
             .first
     }
 
-    private func resourceDate(for fileURL: URL) -> Date? {
-        let values = try? fileURL.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
-        return values?.creationDate ?? values?.contentModificationDate
+    private func fileCreationDate(for fileURL: URL) -> Date? {
+        guard let attributes = try? fileManager.attributesOfItem(atPath: fileURL.path) else {
+            return nil
+        }
+
+        return attributes[.creationDate] as? Date
     }
 
     private static let filenameDateFormatterCandidates: [DateFormatter] = {
@@ -258,10 +386,32 @@ private extension Array where Element == URL {
     var standardizedPaths: [String] {
         map { $0.standardizedFileURL.path }
     }
+
+    var debugPathList: String {
+        map(\.path).joined(separator: ",")
+    }
 }
 
 private struct ScreenshotCaptureTime {
-    let fallbackTimestamp: Date
-    let filenameBucket: DateInterval?
-    let bucketReferenceTimestamp: Date?
+    let timestamp: Date
+    let source: CaptureTimestampSource
+
+    var debugDescription: String {
+        return [
+            "timestamp=\(Self.dateFormatter.string(from: timestamp))",
+            "source=\(source.rawValue)"
+        ].joined(separator: ";")
+    }
+
+    private static let dateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+}
+
+private enum CaptureTimestampSource: String {
+    case fileCreationDate = "file_creation_date"
+    case filename = "filename"
+    case currentDate = "current_date"
 }

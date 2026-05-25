@@ -26,6 +26,14 @@ struct MenuBarView: View {
             controller.refreshStatuses()
         }
 
+        Button("Open Debug Log") {
+            controller.openDebugLog()
+        }
+
+        Button("Clear Debug Log") {
+            controller.clearDebugLog()
+        }
+
         Button("Hide Menu Bar Icon") {
             controller.hideMenuBarItem()
         }

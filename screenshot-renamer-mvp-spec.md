@@ -258,6 +258,48 @@ Reason:
 
 Avoid renaming while file write still happening.
 
+Newly detected screenshots should be tracked as pending while the delay is
+active, but should not be permanently marked as known. The known set is only for
+screenshots that already existed before watching/resuming.
+
+Reason:
+
+macOS can create or restore the same native screenshot path after the app has
+already moved the first file. If the app remembers every scheduled path forever,
+that recreated screenshot is skipped and never renamed.
+
+---
+
+## Debug Logging
+
+The app should keep a lightweight diagnostic log so missed renames can be
+debugged from the user's machine.
+
+Log file:
+
+```text
+~/Library/Application Support/ScreenshotRenamer/debug.log
+```
+
+The menu bar UI should expose:
+
+- Open Debug Log
+- Clear Debug Log
+
+The watcher logs:
+
+- watched folder changes
+- directory change events
+- scan start/end counts
+- screenshot candidate rejection reasons
+- scheduling decisions
+- processing start/skip reasons
+- resolved context and destination filename
+- move success/failure with error text
+
+This log is for diagnosing rename misses and should not be required for normal
+operation.
+
 ---
 
 # 3. Context Matcher
@@ -283,12 +325,15 @@ named `Screenshot ... at 10.00.01` could have been captured any time from
 When a filename timestamp is available:
 
 - first look for context entries inside that one-second bucket
-- if the file creation/modification timestamp is also inside that bucket, use it
-  as a reference point and choose the closest context inside the bucket
+- read the file creation and modification timestamps for millisecond precision
+- if either file timestamp is also inside that bucket, use it as a reference
+  point and choose the closest context inside the bucket
 - if the file timestamp is outside the bucket, choose the latest context inside
   the bucket
-- fall back to nearest timestamp matching when there is no context inside the
-  bucket
+- if there is no context inside the bucket, choose the latest context just
+  before the bucket start
+- fall back to nearest timestamp matching only when the bucket-based fallbacks
+  have no usable context
 
 ### Example
 

@@ -7,6 +7,14 @@ enum ContextMatcher {
         }
     }
 
+    static func latestContext(in buffer: [AppContext], before date: Date) -> AppContext? {
+        buffer
+            .filter { $0.timestamp < date }
+            .max { left, right in
+                left.timestamp < right.timestamp
+            }
+    }
+
     static func bestContext(
         in buffer: [AppContext],
         during interval: DateInterval,

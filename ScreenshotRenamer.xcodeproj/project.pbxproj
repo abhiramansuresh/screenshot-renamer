@@ -21,6 +21,7 @@
 		B00000000000000000000012 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* MenuBarView.swift */; };
 		B00000000000000000000013 /* screenshot_renamer.icon in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* screenshot_renamer.icon */; };
 		B00000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* Assets.xcassets */; };
+		B00000000000000000000017 /* ScreenshotDebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* ScreenshotDebugLogger.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,7 @@
 		A00000000000000000000014 /* ScreenshotRenamer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScreenshotRenamer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000015 /* screenshot_renamer.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = screenshot_renamer.icon; sourceTree = "<group>"; };
 		A00000000000000000000016 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A00000000000000000000017 /* ScreenshotDebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotDebugLogger.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,6 +113,7 @@
 				A00000000000000000000009 /* PermissionManager.swift */,
 				A00000000000000000000010 /* LoginItemManager.swift */,
 				A00000000000000000000011 /* ScreenshotLocationResolver.swift */,
+				A00000000000000000000017 /* ScreenshotDebugLogger.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -213,6 +216,7 @@
 				B00000000000000000000010 /* LoginItemManager.swift in Sources */,
 				B00000000000000000000011 /* ScreenshotLocationResolver.swift in Sources */,
 				B00000000000000000000012 /* MenuBarView.swift in Sources */,
+				B00000000000000000000017 /* ScreenshotDebugLogger.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

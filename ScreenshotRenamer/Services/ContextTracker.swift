@@ -41,6 +41,10 @@ final class ContextTracker {
         ContextMatcher.bestContext(in: buffer, during: interval, referenceDate: referenceDate)
     }
 
+    func context(before date: Date) -> AppContext? {
+        ContextMatcher.latestContext(in: buffer, before: date)
+    }
+
     private func captureCurrentContext() {
         captureContext(for: NSWorkspace.shared.frontmostApplication)
     }
