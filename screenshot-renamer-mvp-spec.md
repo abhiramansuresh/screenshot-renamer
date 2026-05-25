@@ -20,13 +20,13 @@ Replace default screenshot filenames like:
 
 with:
 
-`Figma_LoginFlow.png`
+`Figma_Login_Flow.png`
 
-`Safari_AmazonCheckout.png`
+`Safari_Amazon_Checkout.png`
 
-`Finder_GameAssets.png`
+`Finder_Game_Assets.png`
 
-`Chrome_ResearchNotes.png`
+`Chrome_Research_Notes.png`
 
 without any user interaction.
 
@@ -373,56 +373,324 @@ Generate readable filenames.
 ### Naming Formula
 
 ```text
-[App]_[BrowserDomain]_[TabName]
+[App]_[PageName]
 ```
 
 Examples:
 
 ```text
-Figma_LoginFlow.png
-Safari_GitHub_PullRequest.png
-Chrome_StackOverflow_HowToCenterADiv.png
-Finder_GameAssets.png
+Figma_Login_Flow.png
+Safari_Pull_Request.png
+Chrome_How_To_Center_Div.png
+Finder_Game_Assets.png
 ```
 
-Browser domain is only included when the active app is a supported browser and
-the current tab URL is exposed through Accessibility. Store only the normalized
-domain in context, not the full URL.
+The app name is always first. `Google Chrome` is normalized to `Chrome`, and
+`Microsoft Edge` is normalized to `Edge`.
 
-When a selected tab cannot be detected, fall back to the existing focused
-window title.
+The page name comes from the selected tab title when available, otherwise the
+focused window title.
+
+Browser domains are tracked in context, but they are not included as their own
+filename segment. The cleaned browser domain is used only to avoid repeating the
+same value as the page name. For example, if the cleaned page name and cleaned
+domain compare equal after removing punctuation and casing, omit the page name
+and use the app name only.
+
+Known browser domain display names:
+
+```text
+figma.com         → Figma
+github.com        → GitHub
+google.com        → Google
+notion.so         → Notion
+openai.com        → OpenAI
+stackoverflow.com → StackOverflow
+```
+
+Cleaned browser domain display names have an internal safety limit of 32
+characters.
+
+Maximum generated base filename length before the file extension is 80
+characters. When an incrementing collision suffix is needed, reserve space for
+that suffix inside the 80-character limit.
+
+Fallback filename when no app/title data survives cleanup:
+
+```text
+Screenshot.png
+```
 
 ---
 
 ## Filename Cleanup Rules
 
-### Rule 1 — Remove app suffix noise
-
-Examples:
-
-Remove:
+All tab/window titles run through this exact order before building the filename:
 
 ```text
-- Google Chrome
-- Safari
-- Figma
+1. Strip raw URLs and extract one meaningful segment when possible
+2. Strip domain tokens for browser apps
+3. Strip app-name suffixes and variants
+4. Detect search queries and truncate to 4 words
+5. General title truncation to 5 words
+6. Title-case all words
+7. Drop low-quality titles and fall back to app name only
+8. Sanitize and collapse duplicate separators
 ```
+
+### Rule 1 — Strip raw URLs
+
+If the title looks like a raw URL, reduce it to a meaningful segment before any
+other title cleanup.
+
+Detection:
+
+- contains `://`
+- starts with `http`
+- starts with `www.`
+- contains a long hyphenated domain pattern such as
+  `brainmo-backdoor-staging.vercel.app`
+
+Extraction behavior:
+
+- Parse the URL host when possible.
+- Remove a leading `www`.
+- If the first host label is meaningful, use its first alphanumeric segment.
+- Generic first host labels are `docs`, `drive`, `github`, `google`,
+  `localhost`, `notion`, and `vercel`; for these, prefer the first path segment
+  when present.
+- Split meaningful labels at non-alphanumeric boundaries, so
+  `brainmo-backdoor-staging.vercel.app` becomes `Brainmo`.
+
+Example:
+
+```text
+Chrome_brainmo-backdoor-staging.vercel.app_...
+```
+
+becomes:
+
+```text
+Chrome_Brainmo.png
+```
+
+---
+
+### Rule 2 — Strip domain tokens for browsers
+
+For browser apps only, remove tokens that look like domains from the title.
+
+Supported browser app names:
+
+```text
+Arc
+Brave
+Brave Browser
+Chrome
+Chromium
+Firefox
+Google Chrome
+Microsoft Edge
+Edge
+Opera
+Safari
+```
+
+Domain token patterns removed:
+
+- any token matching a dotted domain such as `word.word` or `word.word.word`
+- any dotted domain ending in a normal TLD such as `.com`, `.io`, `.app`,
+  `.dev`, `.ai`, `.org`, `.net`, or `.co`
+- `localhost`, with or without a port
+
+Example:
+
+```text
+Chrome_docs.google.com_ANT_I_am_cold
+```
+
+becomes:
+
+```text
+Chrome_Ant_I_Am_Cold.png
+```
+
+---
+
+### Rule 3 — Remove app suffix noise
+
+Strip known app names only when they appear as the final title segment separated
+by one of:
+
+```text
+" - "
+" – "
+" — "
+" | "
+```
+
+Known suffixes:
+
+```text
+current app name
+cleaned current app name
+Google Chrome
+Chrome
+Safari
+Firefox
+Mozilla Firefox
+Microsoft Edge
+Edge
+Arc
+Brave
+Brave Browser
+Notion
+Xcode
+Visual Studio Code
+VSCode
+VS Code
+Figma
+Slack
+Linear
+```
+
+The stripping repeats until no matching suffix remains.
 
 Input:
 
 ```text
-How to center div - Stack Overflow - Google Chrome
+How to center a div - Stack Overflow - Google Chrome
 ```
 
 Output:
 
 ```text
-HowToCenterDiv
+Chrome_How_To_Center_A_Div.png
+```
+
+Input:
+
+```text
+main.swift — MyProject — Xcode
+```
+
+Output:
+
+```text
+Xcode_Main_Swift_Myproject.png
 ```
 
 ---
 
-### Rule 2 — Remove illegal filename characters
+### Rule 4 — Detect and collapse search queries
+
+Treat a title as a search query when any of these are true:
+
+- contains `- Google Search` or `| Google Search`
+- contains `- Bing` or `| Bing`
+- contains `- DuckDuckGo` or `| DuckDuckGo`
+- contains `Search results for`
+- title has more than 6 words, the app is a browser, and the raw title did not
+  contain a domain token or raw URL
+
+Search-query handling:
+
+- Strip `Search results for` from the front when present.
+- Strip a trailing search-engine segment and everything after it, matching
+  `Google Search`, `Bing`, or `DuckDuckGo`.
+- If the remaining query starts with naked `Google`, `Bing`, or `DuckDuckGo`,
+  drop that first word.
+- Keep only the first 4 words.
+- Title-case each word.
+
+Examples:
+
+```text
+What the fuck is happening in this world - Google Search
+```
+
+becomes:
+
+```text
+Chrome_What_The_Fuck_Is.png
+```
+
+```text
+Fees for registering OPC in India in Razorpay - Google Search
+```
+
+becomes:
+
+```text
+Chrome_Fees_For_Registering_OPC.png
+```
+
+---
+
+### Rule 5 — General word truncation and title casing
+
+For non-search titles:
+
+- Split the cleaned title into words.
+- Keep the first 5 words maximum.
+- Cut only at word boundaries.
+- Join words with underscores.
+- Title-case every word.
+- The formatted tab/window title has an internal safety limit of 120 characters.
+
+Example:
+
+```text
+Fees_For_Registering_OPC_In_India_In_Razorpay
+```
+
+becomes:
+
+```text
+Fees_For_Registering_OPC_In
+```
+
+Acronym casing:
+
+Known acronym words of 2 to 4 characters are emitted uppercase even if the
+source casing differs:
+
+```text
+AI
+API
+CPU
+CSS
+DNS
+GPU
+HTML
+HTTP
+IP
+JSON
+LLM
+OPC
+PDF
+SQL
+UI
+URL
+UX
+VPN
+XML
+```
+
+Special casing:
+
+```text
+figma  → Figma
+github → GitHub
+ios    → iOS
+macos  → macOS
+openai → OpenAI
+xcode  → Xcode
+```
+
+---
+
+### Rule 6 — Remove illegal filename characters
 
 Remove:
 
@@ -432,9 +700,10 @@ Remove:
 
 ---
 
-### Rule 3 — Normalize spacing
+### Rule 7 — Normalize separators
 
-Replace spaces with underscores.
+Replace whitespace with underscores, collapse duplicate underscores, and trim
+leading/trailing dots, underscores, hyphens, and spaces.
 
 Example:
 
@@ -450,39 +719,10 @@ Login_Flow
 
 ---
 
-### Rule 4 — Trim excessive length
+### Rule 8 — Low-quality title fallback
 
-Max filename length:
-
-40 characters for window title.
-
-Reason:
-
-Prevent ugly filenames.
-
----
-
-### Rule 5 — Remove duplicate separators
-
-Avoid:
-
-```text
-Chrome___Research
-```
-
-Instead:
-
-```text
-Chrome_Research
-```
-
----
-
-### Rule 6 — Low-quality title fallback
-
-If title is empty/useless:
-
-Fallback to app name only.
+If the final cleaned title is low quality, fewer than 2 comparable alphanumeric
+characters, or equal to the app name, omit the title and use the app name only.
 
 Examples:
 
@@ -492,14 +732,41 @@ Slack.png
 Figma.png
 ```
 
-Potential low-quality titles:
+Low-quality titles are normalized by lowercasing, replacing non-alphanumeric
+runs with `_`, and trimming `_`. The implemented low-quality set is:
 
-- Untitled
-- New Tab
-- Home
-- Empty title
+```text
+untitled
+new_tab
+newtab
+home
+google
+bing
+duckduckgo
+emptytitle
+empty_title
+start_page
+startpage
+aboutblank
+about_blank
+```
 
-Simple heuristic acceptable.
+---
+
+### Rule 9 — Base-name length limit
+
+After app and page name are joined, trim the base filename to a maximum of 80
+characters before the extension.
+
+When trimming:
+
+- Prefer the last separator boundary (`_`, `-`, `.`, or space) after at least
+  60% of the allowed length, with a minimum preferred boundary of 20 characters.
+- If no good boundary exists, hard-trim and remove leading/trailing separator
+  characters.
+
+This limit also applies during collision handling, reserving room for `_2`,
+`_3`, etc.
 
 ---
 
@@ -512,9 +779,9 @@ Append incrementing suffix.
 Examples:
 
 ```text
-Figma_LoginFlow.png
-Figma_LoginFlow_2.png
-Figma_LoginFlow_3.png
+Figma_Login_Flow.png
+Figma_Login_Flow_2.png
+Figma_Login_Flow_3.png
 ```
 
 ---
