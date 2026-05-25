@@ -7,6 +7,7 @@ final class ScreenshotWatcher {
     private let fileManager = FileManager.default
     private let onStatusChange: (String) -> Void
     private let onLocationsChange: ([URL]) -> Void
+    private let onRenameCompleted: (URL) -> Void
 
     private var watchers: [DirectoryWatcher] = []
     private var watchedDirectories: [URL] = []
@@ -21,11 +22,13 @@ final class ScreenshotWatcher {
     init(
         contextTracker: ContextTracker,
         onStatusChange: @escaping (String) -> Void,
-        onLocationsChange: @escaping ([URL]) -> Void
+        onLocationsChange: @escaping ([URL]) -> Void,
+        onRenameCompleted: @escaping (URL) -> Void
     ) {
         self.contextTracker = contextTracker
         self.onStatusChange = onStatusChange
         self.onLocationsChange = onLocationsChange
+        self.onRenameCompleted = onRenameCompleted
     }
 
     deinit {
@@ -314,6 +317,7 @@ final class ScreenshotWatcher {
                 "from": fileURL.lastPathComponent,
                 "to": destinationURL.lastPathComponent
             ])
+            onRenameCompleted(destinationURL)
             onStatusChange("Renamed \(destinationURL.lastPathComponent)")
         } catch {
             ScreenshotDebugLogger.log("move_failed", fields: [

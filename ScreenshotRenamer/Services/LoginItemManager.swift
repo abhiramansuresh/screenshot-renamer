@@ -46,10 +46,8 @@ final class LoginItemManager {
         switch SMAppService.mainApp.status {
         case .enabled, .requiresApproval:
             return
-        case .notRegistered:
+        case .notRegistered, .notFound:
             try SMAppService.mainApp.register()
-        case .notFound:
-            throw LoginItemError.unavailable
         @unknown default:
             throw LoginItemError.unknownStatus
         }
@@ -68,13 +66,10 @@ final class LoginItemManager {
 }
 
 private enum LoginItemError: LocalizedError {
-    case unavailable
     case unknownStatus
 
     var errorDescription: String? {
         switch self {
-        case .unavailable:
-            return "Launch at startup is unavailable for this app."
         case .unknownStatus:
             return "Launch at startup status is unknown."
         }

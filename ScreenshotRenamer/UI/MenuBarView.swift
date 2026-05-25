@@ -6,20 +6,13 @@ struct MenuBarView: View {
     var body: some View {
         appHeader
 
-        Button(controller.isPaused ? "Unpause Screen Renamer" : "Pause Screen Renamer") {
-            controller.togglePause()
-        }
-
-        Button("Hide Menu Bar Icon") {
-            controller.hideMenuBarItem()
-        }
+        pauseMenuItems
 
         Toggle(launchAtStartupTitle, isOn: launchAtStartupBinding)
-            .disabled(!controller.launchAtStartupAvailable)
-
-        debugMenuItems
 
         Divider()
+
+        debugMenuItems
 
         Button("Quit") {
             controller.quit()
@@ -27,21 +20,69 @@ struct MenuBarView: View {
         .keyboardShortcut("q")
     }
 
+    @ViewBuilder
     private var appHeader: some View {
         Label {
             Text(AppController.appDisplayName)
+                .font(.system(size: 15, weight: .semibold))
         } icon: {
             Image(controller.isPaused ? "MenuBarPausedIcon" : "MenuBarIcon")
+                .renderingMode(.template)
+                .foregroundStyle(.primary)
+        }
+        .foregroundStyle(.primary)
+
+        Text("No internet access | Runs 100% locally")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+
+        Divider()
+
+        Text(controller.lastRenamedSummary)
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+
+        Text(controller.renameCountSummary)
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+
+        Divider()
+    }
+
+    @ViewBuilder
+    private var pauseMenuItems: some View {
+        if controller.isPaused {
+            Button("Resume Renaming") {
+                controller.resumeRenaming()
+            }
+        } else {
+            Menu("Pause Renaming") {
+                Button("Pause for 5 minutes") {
+                    controller.pauseRenamingForFiveMinutes()
+                }
+
+                Button("Pause for 1 hour") {
+                    controller.pauseRenamingForOneHour()
+                }
+
+                Button("Pause until tomorrow") {
+                    controller.pauseRenamingUntilTomorrow()
+                }
+
+                Button("Pause indefinitely") {
+                    controller.pauseRenamingIndefinitely()
+                }
+            }
         }
     }
 
     private var launchAtStartupTitle: String {
-        controller.launchAtStartupNeedsApproval ? "Launch at Startup (Needs Approval)" : "Launch at Startup"
+        "Launch at Startup"
     }
 
     private var launchAtStartupBinding: Binding<Bool> {
         Binding {
-            controller.launchAtStartupEnabled || controller.launchAtStartupNeedsApproval
+            controller.launchAtStartupPreferred
         } set: { isEnabled in
             controller.setLaunchAtStartup(isEnabled)
         }
@@ -50,8 +91,6 @@ struct MenuBarView: View {
     @ViewBuilder
     private var debugMenuItems: some View {
         #if DEBUG
-        Divider()
-
         Text(controller.lastStatus)
         Text("Watching: \(controller.watchedLocationSummary)")
         Text(controller.loginItemStatus)
