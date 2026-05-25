@@ -25,7 +25,7 @@ final class PermissionManager {
 
         let alert = NSAlert()
         alert.messageText = "Enable Accessibility Access"
-        alert.informativeText = "Screenshot Renamer needs Accessibility access to detect the active app and window title for each screenshot."
+        alert.informativeText = "Screen Renamer needs Accessibility access to detect the active app and window title for each screenshot."
         alert.addButton(withTitle: "Open System Settings")
         alert.addButton(withTitle: "Later")
 
