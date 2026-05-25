@@ -14,6 +14,7 @@
   },
   "groups" : [
     {
+      "hidden" : true,
       "layers" : [
         {
           "fill-specializations" : [
@@ -50,6 +51,7 @@
       }
     },
     {
+      "hidden" : true,
       "layers" : [
         {
           "fill-specializations" : [
@@ -90,6 +92,77 @@
     {
       "layers" : [
 
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "automatic-gradient" : "extended-gray:1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "automatic-gradient" : "extended-gray:1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "tinted",
+              "value" : {
+                "automatic-gradient" : "extended-gray:1.00000,1.00000"
+              }
+            }
+          ],
+          "image-name" : "Pencil.svg",
+          "name" : "Pencil",
+          "position" : {
+            "scale" : 0.95,
+            "translation-in-points" : [
+              116.74915295528115,
+              -114.71621613065588
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "automatic-gradient" : "extended-gray:1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "automatic-gradient" : "extended-gray:1.00000,1.00000"
+              }
+            }
+          ],
+          "image-name" : "Frame 3.svg",
+          "name" : "Frame 3"
+        }
       ],
       "shadow" : {
         "kind" : "neutral",
