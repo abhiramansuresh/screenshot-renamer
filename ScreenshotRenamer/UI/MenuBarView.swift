@@ -55,7 +55,7 @@ struct MenuBarView: View {
         Text(controller.lastStatus)
         Text("Watching: \(controller.watchedLocationSummary)")
         Text(controller.loginItemStatus)
-        Text(controller.accessibilityTrusted ? "Accessibility: granted" : "Accessibility: missing")
+        Text(controller.accessibilityTrusted ? "Accessibility: granted" : "Accessibility: missing or stale")
         Text("Build: Debug")
 
         Button("Refresh Status") {

@@ -16,8 +16,9 @@ final class PermissionManager {
 
     func presentOnboardingIfNeeded() {
         guard !isAccessibilityTrusted else { return }
-        guard !UserDefaults.standard.bool(forKey: onboardingKey) else {
-            requestPermissionPrompt()
+
+        if UserDefaults.standard.bool(forKey: onboardingKey) {
+            presentAccessibilityRepairHelp()
             return
         }
 
@@ -34,6 +35,23 @@ final class PermissionManager {
 
         if response == .alertFirstButtonReturn {
             requestPermissionPrompt()
+            openAccessibilitySettings()
+        }
+    }
+
+    func presentAccessibilityRepairHelp() {
+        guard !isAccessibilityTrusted else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Accessibility Access Needed"
+        alert.informativeText = "If Screen Renamer is already enabled in Privacy & Security, macOS may be holding permission for an older copy of the app. Remove the existing Screen Renamer entry, then add this app again."
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Later")
+
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+
+        if response == .alertFirstButtonReturn {
             openAccessibilitySettings()
         }
     }

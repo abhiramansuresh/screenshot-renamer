@@ -58,8 +58,12 @@ final class AppController: ObservableObject {
     }
 
     func openAccessibilitySettings() {
-        permissionManager.requestPermissionPrompt()
-        permissionManager.openAccessibilitySettings()
+        if permissionManager.isAccessibilityTrusted {
+            permissionManager.openAccessibilitySettings()
+        } else {
+            permissionManager.presentAccessibilityRepairHelp()
+        }
+
         refreshStatuses()
     }
 
