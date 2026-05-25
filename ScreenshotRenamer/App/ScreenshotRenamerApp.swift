@@ -22,24 +22,24 @@ struct ScreenshotRenamerApp: App {
                 }
         } label: {
             if controller.isPaused {
-                Image(systemName: "pause.circle")
+                menuBarIcon(named: "MenuBarPausedIcon", fallbackSystemName: "pause.circle")
             } else {
-                activeMenuBarIcon
+                menuBarIcon(named: "MenuBarIcon", fallbackSystemName: "camera.viewfinder")
             }
         }
         .menuBarExtraStyle(.menu)
     }
 
     @ViewBuilder
-    private var activeMenuBarIcon: some View {
-        if let image = NSImage(named: "MenuBarIcon")?.templateCopy {
+    private func menuBarIcon(named name: String, fallbackSystemName: String) -> some View {
+        if let image = NSImage(named: name)?.templateCopy {
             Image(nsImage: image)
                 .resizable()
                 .scaledToFit()
                 .foregroundStyle(.primary)
                 .frame(width: 18, height: 18)
         } else {
-            Image(systemName: "camera.viewfinder")
+            Image(systemName: fallbackSystemName)
         }
     }
 }
