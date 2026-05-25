@@ -5,14 +5,19 @@ import Foundation
 @MainActor
 final class ContextTracker {
     private var timer: Timer?
+    private var activationObserver: NSObjectProtocol?
+    private var isTracking = false
     private var buffer: [AppContext] = []
+    private let activationSettleDelay: TimeInterval = 0.15
     private let maxContextAge: TimeInterval = 10
     private let maxEntryCount = 24
 
     func start() {
-        guard timer == nil else { return }
+        guard !isTracking else { return }
+        isTracking = true
 
         captureCurrentContext()
+        startActivationObserver()
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.captureCurrentContext()
@@ -23,6 +28,8 @@ final class ContextTracker {
     func stop() {
         timer?.invalidate()
         timer = nil
+        stopActivationObserver()
+        isTracking = false
         buffer.removeAll()
     }
 
@@ -31,18 +38,62 @@ final class ContextTracker {
     }
 
     private func captureCurrentContext() {
+        captureContext(for: NSWorkspace.shared.frontmostApplication)
+    }
+
+    private func captureContext(for application: NSRunningApplication?) {
         let timestamp = Date()
-        let frontmostApplication = NSWorkspace.shared.frontmostApplication
-        let appName = frontmostApplication?.localizedName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let appName = application?.localizedName?.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let context = AppContext(
             timestamp: timestamp,
             appName: appName?.isEmpty == false ? appName! : "Unknown",
-            windowTitle: frontmostApplication.flatMap { focusedWindowTitle(for: $0.processIdentifier) }
+            windowTitle: application.flatMap { focusedWindowTitle(for: $0.processIdentifier) }
         )
 
         buffer.append(context)
         pruneBuffer(relativeTo: timestamp)
+    }
+
+    private func startActivationObserver() {
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                guard let self, self.isTracking else { return }
+                guard let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else {
+                    self.captureCurrentContext()
+                    self.scheduleSettledActivationCapture(for: nil)
+                    return
+                }
+
+                self.captureContext(for: application)
+                self.scheduleSettledActivationCapture(for: application)
+            }
+        }
+    }
+
+    private func stopActivationObserver() {
+        if let activationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
+        }
+
+        activationObserver = nil
+    }
+
+    private func scheduleSettledActivationCapture(for application: NSRunningApplication?) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + activationSettleDelay) { [weak self, application] in
+            guard let self, self.isTracking else { return }
+
+            if let application {
+                guard application.isActive else { return }
+                self.captureContext(for: application)
+            } else {
+                self.captureCurrentContext()
+            }
+        }
     }
 
     private func focusedWindowTitle(for processIdentifier: pid_t) -> String? {

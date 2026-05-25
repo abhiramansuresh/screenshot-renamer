@@ -133,6 +133,16 @@ Capture:
 
 Store in memory.
 
+Also listen for app activation events so fast app switches are captured immediately.
+This covers the case where a user moves into an app and takes a screenshot before
+the next polling tick runs.
+
+On `NSWorkspace.didActivateApplicationNotification`:
+
+- capture the activated app context immediately
+- capture it again after a short delay (~150 ms) so the focused window title has
+  time to settle
+
 ### Example buffer
 
 ```text
@@ -148,6 +158,8 @@ Suggested implementation:
 
 - ring buffer (in-memory)
 - max ~20 entries
+- `NSWorkspace.shared.notificationCenter` activation observer
+- keep periodic polling as a fallback for window-title changes within the same app
 
 ### Data model
 
@@ -173,6 +185,7 @@ Retrieve:
 Likely APIs:
 
 - NSWorkspace.shared.frontmostApplication
+- NSWorkspace.didActivateApplicationNotification
 - AXUIElement
 
 Requires Accessibility Permission.
@@ -261,6 +274,13 @@ Read file creation timestamp.
 Compare against context buffer.
 
 Select closest context entry by timestamp.
+
+Default screenshot filenames only include seconds, not milliseconds. When the
+file creation/modification timestamp falls within the same one-second bucket as
+the filename timestamp, use that resource timestamp for a more precise match.
+When the resource timestamp falls outside that bucket, keep the filename
+timestamp to avoid incorrectly using context from a later app switch while
+macOS is delayed saving the screenshot.
 
 ### Example
 

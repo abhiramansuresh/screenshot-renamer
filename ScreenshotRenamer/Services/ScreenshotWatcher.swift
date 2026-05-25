@@ -167,7 +167,7 @@ final class ScreenshotWatcher {
             return
         }
 
-        let timestamp = screenshotCaptureDate(for: fileURL)
+        let timestamp = screenshotCaptureTimestamp(for: fileURL)
         let context = contextTracker.context(closestTo: timestamp)
             ?? AppContext(timestamp: timestamp, appName: "Screenshot", windowTitle: nil)
         let destinationURL = filenameGenerator.destinationURL(for: fileURL, context: context)
@@ -192,16 +192,27 @@ final class ScreenshotWatcher {
         return values?.isRegularFile == true
     }
 
-    private func screenshotCaptureDate(for fileURL: URL) -> Date {
-        ScreenshotWatcher.filenameDateFormatterCandidates
-            .compactMap { formatter -> Date? in
-                let stem = fileURL.deletingPathExtension().lastPathComponent
-                    .replacingOccurrences(of: #" \(\d+\)$"#, with: "", options: .regularExpression)
-                return formatter.date(from: stem)
-            }
+    private func screenshotCaptureTimestamp(for fileURL: URL) -> Date {
+        let filenameDate = screenshotFilenameDate(for: fileURL)
+        let resourceDate = resourceDate(for: fileURL)
+
+        if let filenameDate,
+           let resourceDate,
+           resourceDate >= filenameDate,
+           resourceDate < filenameDate.addingTimeInterval(1) {
+            return resourceDate
+        }
+
+        return filenameDate ?? resourceDate ?? Date()
+    }
+
+    private func screenshotFilenameDate(for fileURL: URL) -> Date? {
+        let stem = fileURL.deletingPathExtension().lastPathComponent
+            .replacingOccurrences(of: #" \(\d+\)$"#, with: "", options: .regularExpression)
+
+        return ScreenshotWatcher.filenameDateFormatterCandidates
+            .compactMap { $0.date(from: stem) }
             .first
-        ?? resourceDate(for: fileURL)
-        ?? Date()
     }
 
     private func resourceDate(for fileURL: URL) -> Date? {
