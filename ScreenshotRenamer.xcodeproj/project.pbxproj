@@ -19,7 +19,6 @@
 		B00000000000000000000010 /* LoginItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000010 /* LoginItemManager.swift */; };
 		B00000000000000000000011 /* ScreenshotLocationResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000011 /* ScreenshotLocationResolver.swift */; };
 		B00000000000000000000012 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* MenuBarView.swift */; };
-		B00000000000000000000013 /* screenshot_renamer.icon in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* screenshot_renamer.icon */; };
 		B00000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* Assets.xcassets */; };
 		B00000000000000000000017 /* ScreenshotDebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* ScreenshotDebugLogger.swift */; };
 /* End PBXBuildFile section */
@@ -193,7 +192,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				B00000000000000000000014 /* Assets.xcassets in Resources */,
-				B00000000000000000000013 /* screenshot_renamer.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
