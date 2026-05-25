@@ -32,8 +32,8 @@ final class PermissionManager {
         NSApplication.shared.activate(ignoringOtherApps: true)
         let response = alert.runModal()
 
-        requestPermissionPrompt()
         if response == .alertFirstButtonReturn {
+            requestPermissionPrompt()
             openAccessibilitySettings()
         }
     }

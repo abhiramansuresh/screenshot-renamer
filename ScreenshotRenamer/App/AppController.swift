@@ -21,6 +21,11 @@ final class AppController: ObservableObject {
     private let contextTracker = ContextTracker()
     private let permissionManager = PermissionManager.shared
     private let loginItemManager = LoginItemManager.shared
+    private var didStartServices = false
+    private var didPresentStartupAccessibilityPrompt = false
+    private var didAttemptLaunchAtStartupSync = false
+    private var startupPermissionStage: StartupPermissionStage?
+    private var startupPermissionTimer: Timer?
 
     private lazy var screenshotWatcher = ScreenshotWatcher(
         contextTracker: contextTracker,
@@ -38,13 +43,8 @@ final class AppController: ObservableObject {
         guard !didStart else { return }
         didStart = true
 
-        refreshStatuses()
-        permissionManager.presentOnboardingIfNeeded()
-        syncLaunchAtStartupPreference()
-        refreshStatuses()
-
-        contextTracker.start()
-        screenshotWatcher.start()
+        refreshPermissionStatuses()
+        continueStartupPermissionSequence()
     }
 
     func togglePause() {
@@ -64,9 +64,15 @@ final class AppController: ObservableObject {
     }
 
     func refreshStatuses() {
-        accessibilityTrusted = permissionManager.isAccessibilityTrusted
-        refreshLaunchAtStartupStatus()
-        screenshotWatcher.refreshLocations()
+        refreshPermissionStatuses()
+
+        if didStartServices {
+            screenshotWatcher.refreshLocations()
+        } else {
+            updatePendingStartupStatus()
+        }
+
+        continueStartupPermissionSequence()
     }
 
     func setLaunchAtStartup(_ enabled: Bool) {
@@ -80,6 +86,7 @@ final class AppController: ObservableObject {
         }
 
         refreshLaunchAtStartupStatus()
+        continueStartupPermissionSequence()
     }
 
     func openDebugLog() {
@@ -126,6 +133,83 @@ final class AppController: ObservableObject {
         NSApplication.shared.terminate(nil)
     }
 
+    private func continueStartupPermissionSequence() {
+        guard didStart, !didStartServices else { return }
+
+        refreshPermissionStatuses()
+
+        guard accessibilityTrusted else {
+            presentStartupAccessibilityPromptIfNeeded()
+            waitForStartupPermission(.accessibility)
+            return
+        }
+
+        if preferredLaunchAtStartupEnabled {
+            syncLaunchAtStartupPreferenceIfNeeded()
+            refreshLaunchAtStartupStatus()
+
+            if launchAtStartupNeedsApproval {
+                lastStatus = "Waiting for launch at startup approval"
+                waitForStartupPermission(.launchAtStartup)
+                return
+            }
+        }
+
+        startServicesAfterPermissions()
+    }
+
+    private func presentStartupAccessibilityPromptIfNeeded() {
+        guard !didPresentStartupAccessibilityPrompt else { return }
+        didPresentStartupAccessibilityPrompt = true
+        lastStatus = "Waiting for Accessibility access"
+        watchedLocationSummary = "Waiting for permissions"
+        permissionManager.presentOnboardingIfNeeded()
+        refreshPermissionStatuses()
+    }
+
+    private func waitForStartupPermission(_ stage: StartupPermissionStage) {
+        guard startupPermissionStage != stage else { return }
+
+        startupPermissionTimer?.invalidate()
+        startupPermissionStage = stage
+
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.continueStartupPermissionSequence()
+            }
+        }
+
+        startupPermissionTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func startServicesAfterPermissions() {
+        guard !didStartServices else { return }
+
+        startupPermissionTimer?.invalidate()
+        startupPermissionTimer = nil
+        startupPermissionStage = nil
+        didStartServices = true
+
+        contextTracker.start()
+        screenshotWatcher.start()
+    }
+
+    private func refreshPermissionStatuses() {
+        accessibilityTrusted = permissionManager.isAccessibilityTrusted
+        refreshLaunchAtStartupStatus()
+    }
+
+    private func updatePendingStartupStatus() {
+        if !accessibilityTrusted {
+            lastStatus = "Waiting for Accessibility access"
+            watchedLocationSummary = "Waiting for permissions"
+        } else if launchAtStartupNeedsApproval {
+            lastStatus = "Waiting for launch at startup approval"
+            watchedLocationSummary = "Waiting for permissions"
+        }
+    }
+
     private static func locationSummary(for locations: [URL]) -> String {
         guard !locations.isEmpty else { return "No folders" }
 
@@ -159,10 +243,21 @@ final class AppController: ObservableObject {
         refreshLaunchAtStartupStatus()
     }
 
+    private func syncLaunchAtStartupPreferenceIfNeeded() {
+        guard !didAttemptLaunchAtStartupSync else { return }
+        didAttemptLaunchAtStartupSync = true
+        syncLaunchAtStartupPreference()
+    }
+
     private func refreshLaunchAtStartupStatus() {
         launchAtStartupEnabled = loginItemManager.isEnabled
         launchAtStartupNeedsApproval = loginItemManager.needsApproval
         launchAtStartupAvailable = loginItemManager.isAvailable
         loginItemStatus = loginItemManager.statusDescription
     }
+}
+
+private enum StartupPermissionStage {
+    case accessibility
+    case launchAtStartup
 }
