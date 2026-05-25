@@ -8,12 +8,14 @@
 
 # Xcode build products and indexes
 DerivedData/
+.derivedData/
 build/
 Build/
 *.xcarchive
 *.dSYM
 *.dSYM.zip
 *.ipa
+*.xcresult
 Index.noindex/
 
 # Xcode user-specific state

@@ -1,8 +1,17 @@
 import Foundation
 
 struct FilenameGenerator {
+    private let maxDomainLength = 32
     private let maxTitleLength = 40
     private let illegalCharacters = CharacterSet(charactersIn: "/\\:?*\"<>|")
+    private let domainDisplayNames = [
+        "figma.com": "Figma",
+        "github.com": "GitHub",
+        "google.com": "Google",
+        "notion.so": "Notion",
+        "openai.com": "OpenAI",
+        "stackoverflow.com": "StackOverflow"
+    ]
     private let lowQualityTitles: Set<String> = [
         "untitled",
         "newtab",
@@ -21,8 +30,11 @@ struct FilenameGenerator {
         let fileExtension = originalURL.pathExtension.isEmpty ? "png" : originalURL.pathExtension
 
         let appName = cleanedAppName(context.appName)
-        let title = cleanedWindowTitle(context.windowTitle, appName: context.appName)
-        let baseName = [appName, title].compactMap { $0 }.joined(separator: "_")
+        let domainName = cleanedBrowserDomain(context.browserDomain)
+        let tabName = cleanedTabName(context.tabName, appName: context.appName)
+        let fallbackTitle = cleanedWindowTitle(context.windowTitle, appName: context.appName)
+        let pageName = distinctPageName(tabName ?? fallbackTitle, domainName: domainName)
+        let baseName = [appName, domainName, pageName].compactMap { $0 }.joined(separator: "_")
         let safeBaseName = baseName.isEmpty ? "Screenshot" : baseName
 
         return availableURL(
@@ -48,18 +60,41 @@ struct FilenameGenerator {
     }
 
     private func cleanedWindowTitle(_ title: String?, appName: String) -> String? {
-        guard var title = title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty else {
+        cleanedContextName(title, appName: appName)
+    }
+
+    private func cleanedTabName(_ tabName: String?, appName: String) -> String? {
+        cleanedContextName(tabName, appName: appName)
+    }
+
+    private func cleanedBrowserDomain(_ domain: String?) -> String? {
+        guard let domain = domain?.trimmingCharacters(in: .whitespacesAndNewlines), !domain.isEmpty else {
             return nil
         }
 
-        title = removeAppSuffixNoise(from: title, appName: appName)
+        let displayName = domainDisplayNames[domain.lowercased()] ?? domain
+        return sanitize(displayName, maxLength: maxDomainLength)
+    }
 
-        if isBrowser(appName) {
-            title = removeBrowserSiteSuffix(from: title)
+    private func cleanedContextName(_ name: String?, appName: String) -> String? {
+        guard var name = name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
+            return nil
         }
 
-        guard !isLowQualityTitle(title) else { return nil }
-        return sanitize(title, maxLength: maxTitleLength)
+        name = removeAppSuffixNoise(from: name, appName: appName)
+
+        if isBrowser(appName) {
+            name = removeBrowserSiteSuffix(from: name)
+        }
+
+        guard !isLowQualityTitle(name), !isAppName(name, appName: appName) else { return nil }
+        return sanitize(name, maxLength: maxTitleLength)
+    }
+
+    private func distinctPageName(_ pageName: String?, domainName: String?) -> String? {
+        guard let pageName else { return nil }
+        guard let domainName else { return pageName }
+        return comparableName(pageName) == comparableName(domainName) ? nil : pageName
     }
 
     private func removeAppSuffixNoise(from title: String, appName: String) -> String {
@@ -98,8 +133,24 @@ struct FilenameGenerator {
     }
 
     private func isBrowser(_ appName: String) -> Bool {
-        let browserNames = ["Safari", "Google Chrome", "Chrome", "Microsoft Edge", "Edge", "Firefox", "Arc"]
+        let browserNames = [
+            "Arc",
+            "Brave Browser",
+            "Chrome",
+            "Chromium",
+            "Firefox",
+            "Google Chrome",
+            "Microsoft Edge",
+            "Edge",
+            "Opera",
+            "Safari"
+        ]
         return browserNames.contains { $0.caseInsensitiveCompare(appName) == .orderedSame }
+    }
+
+    private func isAppName(_ title: String, appName: String) -> Bool {
+        let appNames = [appName, cleanedAppName(appName)]
+        return appNames.contains { $0.caseInsensitiveCompare(title) == .orderedSame }
     }
 
     private func isLowQualityTitle(_ title: String) -> Bool {
@@ -109,6 +160,12 @@ struct FilenameGenerator {
             .trimmingCharacters(in: CharacterSet(charactersIn: "_"))
 
         return normalized.isEmpty || lowQualityTitles.contains(normalized)
+    }
+
+    private func comparableName(_ name: String) -> String {
+        name
+            .lowercased()
+            .replacingOccurrences(of: #"[^a-z0-9]+"#, with: "", options: .regularExpression)
     }
 
     private func sanitize(_ value: String, maxLength: Int?) -> String? {

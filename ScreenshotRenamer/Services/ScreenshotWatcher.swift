@@ -36,7 +36,9 @@ final class ScreenshotWatcher {
     func start() {
         guard !isRunning else { return }
         isRunning = true
-        ScreenshotDebugLogger.log("watcher_start")
+        ScreenshotDebugLogger.log("watcher_start", fields: [
+            "context_schema": "app_window_tab_domain_v2"
+        ])
         rebuildWatchers(markExistingScreenshots: true)
         startLocationRefreshTimer()
     }
@@ -284,8 +286,11 @@ final class ScreenshotWatcher {
         ScreenshotDebugLogger.log("process_resolved", fields: [
             "file": fileURL.lastPathComponent,
             "capture": captureTime.debugDescription,
+            "context_schema": "app_window_tab_domain_v2",
             "context_app": context.appName,
             "context_title": context.windowTitle ?? "",
+            "context_tab": context.tabName ?? "",
+            "context_domain": context.browserDomain ?? "",
             "destination": destinationURL.lastPathComponent
         ])
 

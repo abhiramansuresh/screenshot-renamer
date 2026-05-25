@@ -169,6 +169,8 @@ struct AppContext {
     let timestamp: Date
     let appName: String
     let windowTitle: String?
+    let tabName: String?
+    let browserDomain: String?
 }
 ```
 
@@ -371,17 +373,24 @@ Generate readable filenames.
 ### Naming Formula
 
 ```text
-[App]_[WindowTitle]
+[App]_[BrowserDomain]_[TabName]
 ```
 
 Examples:
 
 ```text
 Figma_LoginFlow.png
-Safari_AmazonCheckout.png
-Chrome_ResearchNotes.png
+Safari_GitHub_PullRequest.png
+Chrome_StackOverflow_HowToCenterADiv.png
 Finder_GameAssets.png
 ```
+
+Browser domain is only included when the active app is a supported browser and
+the current tab URL is exposed through Accessibility. Store only the normalized
+domain in context, not the full URL.
+
+When a selected tab cannot be detected, fall back to the existing focused
+window title.
 
 ---
 
