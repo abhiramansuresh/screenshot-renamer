@@ -21,7 +21,16 @@ struct ScreenshotRenamerApp: App {
                     controller.refreshStatuses()
                 }
         } label: {
-            Image(systemName: controller.isPaused ? "pause.circle" : "camera.viewfinder")
+            if controller.isPaused {
+                Image(systemName: "pause.circle")
+            } else {
+                Image("MenuBarIcon")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.primary)
+                    .frame(width: 18, height: 18)
+            }
         }
         .menuBarExtraStyle(.menu)
     }
