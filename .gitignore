@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Xcode build products and indexes
+DerivedData/
+build/
+Build/
+*.xcarchive
+*.dSYM
+*.dSYM.zip
+*.ipa
+Index.noindex/
+
+# Xcode user-specific state
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.moved-aside
+
+# Swift Package Manager local build state
+.build/
+.swiftpm/
+
+# Local configuration and logs
+.env
+.env.*
+*.log
