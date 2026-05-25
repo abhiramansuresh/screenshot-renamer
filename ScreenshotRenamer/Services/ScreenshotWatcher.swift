@@ -169,7 +169,7 @@ final class ScreenshotWatcher {
         do {
             fileURLs = try fileManager.contentsOfDirectory(
                 at: directoryURL,
-                includingPropertiesForKeys: [.isRegularFileKey],
+                includingPropertiesForKeys: [.isRegularFileKey, .creationDateKey, .contentModificationDateKey],
                 options: [.skipsHiddenFiles]
             )
         } catch {
@@ -278,7 +278,7 @@ final class ScreenshotWatcher {
 
         let captureTime = screenshotCaptureTime(for: fileURL)
         let context = screenshotContext(for: captureTime)
-            ?? AppContext(timestamp: captureTime.timestamp, appName: "Screenshot", windowTitle: nil)
+            ?? AppContext(timestamp: captureTime.fallbackTimestamp, appName: "Screenshot", windowTitle: nil)
         let destinationURL = filenameGenerator.destinationURL(for: fileURL, context: context)
 
         ScreenshotDebugLogger.log("process_resolved", fields: [
@@ -335,19 +335,35 @@ final class ScreenshotWatcher {
     }
 
     private func screenshotContext(for captureTime: ScreenshotCaptureTime) -> AppContext? {
-        contextTracker.context(closestTo: captureTime.timestamp)
+        if let filenameBucket = captureTime.filenameBucket {
+            if let context = contextTracker.context(
+                during: filenameBucket,
+                referenceDate: captureTime.bucketReferenceTimestamp
+            ) {
+                return context
+            }
+
+            if let context = contextTracker.context(before: filenameBucket.start) {
+                return context
+            }
+        }
+
+        return contextTracker.context(closestTo: captureTime.fallbackTimestamp)
     }
 
     private func screenshotCaptureTime(for fileURL: URL) -> ScreenshotCaptureTime {
-        if let creationDate = fileCreationDate(for: fileURL) {
-            return ScreenshotCaptureTime(timestamp: creationDate, source: .fileCreationDate)
+        let filenameDate = screenshotFilenameDate(for: fileURL)
+        let fileTimestamps = fileTimestamps(for: fileURL)
+        let filenameBucket = filenameDate.map { DateInterval(start: $0, duration: 1) }
+        let bucketReferenceTimestamp = filenameBucket.flatMap { bucket -> Date? in
+            fileTimestamps.timestamp(in: bucket)
         }
 
-        if let filenameDate = screenshotFilenameDate(for: fileURL) {
-            return ScreenshotCaptureTime(timestamp: filenameDate, source: .filename)
-        }
-
-        return ScreenshotCaptureTime(timestamp: Date(), source: .currentDate)
+        return ScreenshotCaptureTime(
+            fallbackTimestamp: filenameDate ?? fileTimestamps.fallbackTimestamp ?? Date(),
+            filenameBucket: filenameBucket,
+            bucketReferenceTimestamp: bucketReferenceTimestamp
+        )
     }
 
     private func screenshotFilenameDate(for fileURL: URL) -> Date? {
@@ -359,12 +375,12 @@ final class ScreenshotWatcher {
             .first
     }
 
-    private func fileCreationDate(for fileURL: URL) -> Date? {
-        guard let attributes = try? fileManager.attributesOfItem(atPath: fileURL.path) else {
-            return nil
-        }
-
-        return attributes[.creationDate] as? Date
+    private func fileTimestamps(for fileURL: URL) -> ScreenshotFileTimestamps {
+        let values = try? fileURL.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+        return ScreenshotFileTimestamps(
+            creationDate: values?.creationDate,
+            modificationDate: values?.contentModificationDate
+        )
     }
 
     private static let filenameDateFormatterCandidates: [DateFormatter] = {
@@ -393,13 +409,23 @@ private extension Array where Element == URL {
 }
 
 private struct ScreenshotCaptureTime {
-    let timestamp: Date
-    let source: CaptureTimestampSource
+    let fallbackTimestamp: Date
+    let filenameBucket: DateInterval?
+    let bucketReferenceTimestamp: Date?
 
     var debugDescription: String {
+        let bucketText: String
+
+        if let filenameBucket {
+            bucketText = "\(Self.dateFormatter.string(from: filenameBucket.start))...\(Self.dateFormatter.string(from: filenameBucket.end))"
+        } else {
+            bucketText = "nil"
+        }
+
         return [
-            "timestamp=\(Self.dateFormatter.string(from: timestamp))",
-            "source=\(source.rawValue)"
+            "fallback=\(Self.dateFormatter.string(from: fallbackTimestamp))",
+            "bucket=\(bucketText)",
+            "reference=\(bucketReferenceTimestamp.map { Self.dateFormatter.string(from: $0) } ?? "nil")"
         ].joined(separator: ";")
     }
 
@@ -410,8 +436,19 @@ private struct ScreenshotCaptureTime {
     }()
 }
 
-private enum CaptureTimestampSource: String {
-    case fileCreationDate = "file_creation_date"
-    case filename = "filename"
-    case currentDate = "current_date"
+private struct ScreenshotFileTimestamps {
+    let creationDate: Date?
+    let modificationDate: Date?
+
+    var fallbackTimestamp: Date? {
+        creationDate ?? modificationDate
+    }
+
+    func timestamp(in interval: DateInterval) -> Date? {
+        [creationDate, modificationDate]
+            .compactMap { $0 }
+            .first { timestamp in
+                timestamp >= interval.start && timestamp < interval.end
+            }
+    }
 }
