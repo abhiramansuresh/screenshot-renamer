@@ -8,9 +8,9 @@ final class ContextTracker {
     private var activationObserver: NSObjectProtocol?
     private var isTracking = false
     private var buffer: [AppContext] = []
-    private let activationSettleDelay: TimeInterval = 0.15
+    private let activationSettleDelays: [TimeInterval] = [0.05, 0.15]
     private let maxContextAge: TimeInterval = 10
-    private let maxEntryCount = 24
+    private let maxEntryCount = 80
 
     func start() {
         guard !isTracking else { return }
@@ -35,6 +35,10 @@ final class ContextTracker {
 
     func context(closestTo date: Date) -> AppContext? {
         ContextMatcher.nearestContext(in: buffer, to: date)
+    }
+
+    func context(during interval: DateInterval, referenceDate: Date?) -> AppContext? {
+        ContextMatcher.bestContext(in: buffer, during: interval, referenceDate: referenceDate)
     }
 
     private func captureCurrentContext() {
@@ -84,14 +88,16 @@ final class ContextTracker {
     }
 
     private func scheduleSettledActivationCapture(for application: NSRunningApplication?) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + activationSettleDelay) { [weak self, application] in
-            guard let self, self.isTracking else { return }
+        for delay in activationSettleDelays {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self, application] in
+                guard let self, self.isTracking else { return }
 
-            if let application {
-                guard application.isActive else { return }
-                self.captureContext(for: application)
-            } else {
-                self.captureCurrentContext()
+                if let application {
+                    guard application.isActive else { return }
+                    self.captureContext(for: application)
+                } else {
+                    self.captureCurrentContext()
+                }
             }
         }
     }

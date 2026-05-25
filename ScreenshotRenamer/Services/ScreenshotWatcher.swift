@@ -167,9 +167,9 @@ final class ScreenshotWatcher {
             return
         }
 
-        let timestamp = screenshotCaptureTimestamp(for: fileURL)
-        let context = contextTracker.context(closestTo: timestamp)
-            ?? AppContext(timestamp: timestamp, appName: "Screenshot", windowTitle: nil)
+        let captureTime = screenshotCaptureTime(for: fileURL)
+        let context = screenshotContext(for: captureTime)
+            ?? AppContext(timestamp: captureTime.fallbackTimestamp, appName: "Screenshot", windowTitle: nil)
         let destinationURL = filenameGenerator.destinationURL(for: fileURL, context: context)
 
         guard destinationURL.standardizedFileURL != fileURL.standardizedFileURL else { return }
@@ -192,18 +192,37 @@ final class ScreenshotWatcher {
         return values?.isRegularFile == true
     }
 
-    private func screenshotCaptureTimestamp(for fileURL: URL) -> Date {
+    private func screenshotContext(for captureTime: ScreenshotCaptureTime) -> AppContext? {
+        if let filenameBucket = captureTime.filenameBucket,
+           let context = contextTracker.context(
+            during: filenameBucket,
+            referenceDate: captureTime.bucketReferenceTimestamp
+           ) {
+            return context
+        }
+
+        return contextTracker.context(closestTo: captureTime.fallbackTimestamp)
+    }
+
+    private func screenshotCaptureTime(for fileURL: URL) -> ScreenshotCaptureTime {
         let filenameDate = screenshotFilenameDate(for: fileURL)
         let resourceDate = resourceDate(for: fileURL)
+        let filenameBucket = filenameDate.map { DateInterval(start: $0, duration: 1) }
+        let bucketReferenceTimestamp = filenameBucket.flatMap { bucket -> Date? in
+            guard let resourceDate,
+                  resourceDate >= bucket.start,
+                  resourceDate < bucket.end else {
+                return nil
+            }
 
-        if let filenameDate,
-           let resourceDate,
-           resourceDate >= filenameDate,
-           resourceDate < filenameDate.addingTimeInterval(1) {
             return resourceDate
         }
 
-        return filenameDate ?? resourceDate ?? Date()
+        return ScreenshotCaptureTime(
+            fallbackTimestamp: filenameDate ?? resourceDate ?? Date(),
+            filenameBucket: filenameBucket,
+            bucketReferenceTimestamp: bucketReferenceTimestamp
+        )
     }
 
     private func screenshotFilenameDate(for fileURL: URL) -> Date? {
@@ -239,4 +258,10 @@ private extension Array where Element == URL {
     var standardizedPaths: [String] {
         map { $0.standardizedFileURL.path }
     }
+}
+
+private struct ScreenshotCaptureTime {
+    let fallbackTimestamp: Date
+    let filenameBucket: DateInterval?
+    let bucketReferenceTimestamp: Date?
 }

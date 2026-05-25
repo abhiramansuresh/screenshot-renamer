@@ -140,8 +140,8 @@ the next polling tick runs.
 On `NSWorkspace.didActivateApplicationNotification`:
 
 - capture the activated app context immediately
-- capture it again after a short delay (~150 ms) so the focused window title has
-  time to settle
+- capture it again in a short burst (~50 ms and ~150 ms) so quick screenshots
+  get fresh context while the focused window title still has time to settle
 
 ### Example buffer
 
@@ -157,7 +157,8 @@ Keep approximately the last 10 seconds.
 Suggested implementation:
 
 - ring buffer (in-memory)
-- max ~20 entries
+- max ~80 entries, enough to cover polling plus activation bursts over the
+  recent 10-second window
 - `NSWorkspace.shared.notificationCenter` activation observer
 - keep periodic polling as a fallback for window-title changes within the same app
 
@@ -269,18 +270,25 @@ Match screenshot to the correct app/window context.
 
 When screenshot appears:
 
-Read file creation timestamp.
+Read the default screenshot filename timestamp.
 
 Compare against context buffer.
 
-Select closest context entry by timestamp.
+Treat filename timestamps as a one-second capture bucket.
 
-Default screenshot filenames only include seconds, not milliseconds. When the
-file creation/modification timestamp falls within the same one-second bucket as
-the filename timestamp, use that resource timestamp for a more precise match.
-When the resource timestamp falls outside that bucket, keep the filename
-timestamp to avoid incorrectly using context from a later app switch while
-macOS is delayed saving the screenshot.
+Default screenshot filenames only include seconds, not milliseconds. A file
+named `Screenshot ... at 10.00.01` could have been captured any time from
+`10:00:01.000` through `10:00:01.999`.
+
+When a filename timestamp is available:
+
+- first look for context entries inside that one-second bucket
+- if the file creation/modification timestamp is also inside that bucket, use it
+  as a reference point and choose the closest context inside the bucket
+- if the file timestamp is outside the bucket, choose the latest context inside
+  the bucket
+- fall back to nearest timestamp matching when there is no context inside the
+  bucket
 
 ### Example
 
