@@ -4,15 +4,8 @@ enum ScreenshotLocationResolver {
     private static let screencapturePreferencesDomain = "com.apple.screencapture" as CFString
 
     static func screenshotDirectories() -> [URL] {
-        let desktopURL = desktopDirectory()
-        var directories: [URL] = [desktopURL]
-
-        if let customLocation = customScreenshotLocation(),
-           customLocation.standardizedFileURL != desktopURL.standardizedFileURL {
-            directories.append(customLocation)
-        }
-
-        return uniqueExistingDirectories(directories)
+        let directory = customScreenshotLocation() ?? desktopDirectory()
+        return uniqueExistingDirectories([directory])
     }
 
     private static func desktopDirectory() -> URL {

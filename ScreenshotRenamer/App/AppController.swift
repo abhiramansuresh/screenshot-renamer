@@ -56,10 +56,6 @@ final class AppController: ObservableObject {
         startMenuClockTimer()
     }
 
-    var menuHeaderTitle: String {
-        "\(Self.appDisplayName)          \(isPaused ? "Paused" : "✓ Active")"
-    }
-
     var lastRenamedSummary: String {
         _ = menuClock
 
