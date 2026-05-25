@@ -1,6 +1,9 @@
 import Foundation
 
 enum ContextMatcher {
+    private static let lateBucketEdgeTolerance: TimeInterval = 0.15
+    private static let previousContextFreshnessLimit: TimeInterval = 2
+
     static func nearestContext(in buffer: [AppContext], to date: Date) -> AppContext? {
         buffer.min { left, right in
             abs(left.timestamp.timeIntervalSince(date)) < abs(right.timestamp.timeIntervalSince(date))
@@ -32,8 +35,44 @@ enum ContextMatcher {
             return nearestContext(in: candidates, to: referenceDate)
         }
 
-        return candidates.max { left, right in
+        guard let latestCandidate = candidates.max(by: { left, right in
             left.timestamp < right.timestamp
+        }) else {
+            return nil
         }
+
+        if let previousContext = previousContextForLateBucketEdge(
+            in: buffer,
+            interval: interval,
+            latestCandidate: latestCandidate
+        ) {
+            return previousContext
+        }
+
+        return latestCandidate
+    }
+
+    private static func previousContextForLateBucketEdge(
+        in buffer: [AppContext],
+        interval: DateInterval,
+        latestCandidate: AppContext
+    ) -> AppContext? {
+        let timeUntilBucketEnd = interval.end.timeIntervalSince(latestCandidate.timestamp)
+        guard timeUntilBucketEnd >= 0,
+              timeUntilBucketEnd <= lateBucketEdgeTolerance else {
+            return nil
+        }
+
+        guard let previousContext = latestContext(in: buffer, before: interval.start) else {
+            return nil
+        }
+
+        let previousContextAge = interval.start.timeIntervalSince(previousContext.timestamp)
+        guard previousContextAge >= 0,
+              previousContextAge <= previousContextFreshnessLimit else {
+            return nil
+        }
+
+        return previousContext
     }
 }

@@ -291,6 +291,7 @@ final class ScreenshotWatcher {
             "context_title": context.windowTitle ?? "",
             "context_tab": context.tabName ?? "",
             "context_domain": context.browserDomain ?? "",
+            "context_timestamp": Self.debugDateFormatter.string(from: context.timestamp),
             "destination": destinationURL.lastPathComponent
         ])
 
@@ -400,6 +401,12 @@ final class ScreenshotWatcher {
             formatter.dateFormat = format
             return formatter
         }
+    }()
+
+    private static let debugDateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
     }()
 }
 

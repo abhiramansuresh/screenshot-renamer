@@ -11,6 +11,8 @@ DerivedData/
 .derivedData/
 build/
 Build/
+Debug/
+Prod/
 *.xcarchive
 *.dSYM
 *.dSYM.zip
