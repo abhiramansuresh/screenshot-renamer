@@ -46,8 +46,8 @@ struct FilenameGenerator {
         "about_blank"
     ]
 
-    func destinationURL(for originalURL: URL, context: AppContext) -> URL {
-        let directoryURL = originalURL.deletingLastPathComponent()
+    func destinationURL(for originalURL: URL, context: AppContext, directoryURL: URL? = nil) -> URL {
+        let directoryURL = directoryURL ?? originalURL.deletingLastPathComponent()
         let fileExtension = originalURL.pathExtension.isEmpty ? "png" : originalURL.pathExtension
 
         let appName = cleanedAppName(context.appName)
@@ -64,6 +64,14 @@ struct FilenameGenerator {
             fileExtension: fileExtension,
             originalURL: originalURL
         )
+    }
+
+    func organizedFolderName(for appName: String) -> String {
+        "\(cleanedAppName(appName))_Screenshots"
+    }
+
+    func normalizedAppName(for appName: String) -> String {
+        cleanedAppName(appName)
     }
 
     private func cleanedAppName(_ appName: String) -> String {

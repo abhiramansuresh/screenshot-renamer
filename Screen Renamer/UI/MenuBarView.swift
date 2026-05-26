@@ -8,6 +8,9 @@ struct MenuBarView: View {
 
         pauseMenuItems
 
+        Toggle("Organize by Folders", isOn: autoOrganizeScreenshotsBinding)
+            .help("Creates folders smartly to organise your screenshots")
+
         Toggle(launchAtStartupTitle, isOn: launchAtStartupBinding)
 
         Divider()
@@ -78,6 +81,14 @@ struct MenuBarView: View {
 
     private var launchAtStartupTitle: String {
         "Launch at Startup"
+    }
+
+    private var autoOrganizeScreenshotsBinding: Binding<Bool> {
+        Binding {
+            controller.autoOrganizeScreenshotsEnabled
+        } set: { isEnabled in
+            controller.setAutoOrganizeScreenshots(isEnabled)
+        }
     }
 
     private var launchAtStartupBinding: Binding<Bool> {
