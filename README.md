@@ -1,9 +1,5 @@
 ![Screen Renamer banner](docs/assets/screen-renamer-banner.png)
 
-# Screen Renamer
-
-  
-
 Screen Renamer is a tiny macOS menu bar utility that automatically renames screenshots into meaningful, human-readable filenames based on the app and window or browser tab you captured.
 
   
