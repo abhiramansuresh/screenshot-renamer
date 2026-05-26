@@ -42,7 +42,7 @@ The goal is simple: take screenshots as usual, then let the app clean up the fil
 
   
 
-macOS screenshots are easy to create but hard to find later. Default screenshot filenames tell you when a screenshot was taken, but not what it was about. Screen Renamer keeps screenshots searchable by using the context that already exists on your Mac: the foreground app, focused window title, selected browser tab, and browser domain where available.
+macOS screenshots are easy to create but hard to find later. Default screenshot filenames tell you when a screenshot was taken, but not what it was about. Screen Renamer keeps screenshots searchable using context that already exists on your Mac: the foreground app, focused window title, selected browser tab, and browser domain where available.
 
   
 
@@ -78,7 +78,11 @@ The app is intentionally local-first:
 
 - Reads browser tab and domain context where macOS Accessibility APIs expose it
 
+- Extracts browser domains when available to avoid noisy or duplicate filename segments
+
 - Sanitizes filenames for macOS compatibility
+
+- Cleans noisy titles by removing raw URLs, browser domains, app suffixes, and low-quality placeholders
 
 - Avoids overwriting existing files by adding an incrementing suffix
 
@@ -86,7 +90,7 @@ The app is intentionally local-first:
 
 - Can launch at startup
 
-- Includes a debug log for diagnosing missed renames
+- Writes a local debug log to help diagnose missed or unexpected renames
 
   
 
@@ -134,6 +138,8 @@ The app asks for Accessibility access because macOS requires it before an app ca
 
 - Swift 5
 
+- No Node.js, npm, or third-party Swift packages are required
+
   
 
 ## Installation
@@ -150,9 +156,9 @@ Clone the repository:
 
 ```sh
 
-git clone https://github.com/YOUR_USERNAME/screenshot_renamer.git
+git clone https://github.com/abhiramansuresh/screenshot-renamer.git
 
-cd screenshot_renamer
+cd screenshot-renamer
 
 ```
 
@@ -448,7 +454,7 @@ MenuBarView.swift
 
 - Minimum macOS version is set to 13.0.
 
-- Bundle identifier is `com.amorphicLabs.ScreenshotRenamer`.
+- Bundle identifier is `com.amorphicLabs.ScreenshotRenamer`. This is a legacy identifier retained so existing macOS Accessibility permissions continue to match after the product rename.
 
 - The app uses `LSUIElement` so it appears as a menu bar utility instead of a Dock app.
 
@@ -492,6 +498,8 @@ Potential future improvements:
 
 - Optional filename format customization
 
+- Optional privacy controls for sensitive apps or private workflows
+
 - Localization support for non-English screenshot filenames
 
 - More robust browser metadata support
@@ -525,5 +533,3 @@ Issues and pull requests are welcome once the repository is public. Please keep 
   
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for the full license text.
-
-MIT is a permissive open-source license. It allows people to use, copy, modify, merge, publish, distribute, sublicense, and sell copies of the project, as long as the copyright notice and license text are included.
