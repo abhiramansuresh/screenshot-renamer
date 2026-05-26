@@ -1,3 +1,5 @@
+![Screen Renamer banner](docs/assets/screen-renamer-banner.png)
+
 # Screen Renamer
 
   
