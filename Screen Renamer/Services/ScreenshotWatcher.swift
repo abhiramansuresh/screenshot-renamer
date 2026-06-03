@@ -4,8 +4,8 @@ import Foundation
 final class ScreenshotWatcher {
     private let contextTracker: ContextTracker
     private let filenameGenerator = FilenameGenerator()
+    private let screenshotOrganizer = ScreenshotOrganizer()
     private let fileManager = FileManager.default
-    private let organizationThreshold = 5
     private let supportedScreenshotExtensions: Set<String> = ["png", "jpg", "jpeg", "heic", "tiff", "pdf"]
     private let onStatusChange: (String) -> Void
     private let onLocationsChange: ([URL]) -> Void
@@ -20,17 +20,14 @@ final class ScreenshotWatcher {
     private var locationRefreshTimer: Timer?
     private var isRunning = false
     private var isPaused = false
-    private var autoOrganizeScreenshots: Bool
 
     init(
         contextTracker: ContextTracker,
-        autoOrganizeScreenshots: Bool,
         onStatusChange: @escaping (String) -> Void,
         onLocationsChange: @escaping ([URL]) -> Void,
         onRenameCompleted: @escaping (URL) -> Void
     ) {
         self.contextTracker = contextTracker
-        self.autoOrganizeScreenshots = autoOrganizeScreenshots
         self.onStatusChange = onStatusChange
         self.onLocationsChange = onLocationsChange
         self.onRenameCompleted = onRenameCompleted
@@ -66,13 +63,6 @@ final class ScreenshotWatcher {
         ScreenshotDebugLogger.log("watcher_resume")
         markExistingScreenshots()
         onStatusChange("Watching for screenshots")
-    }
-
-    func setAutoOrganizeScreenshots(_ enabled: Bool) {
-        autoOrganizeScreenshots = enabled
-        ScreenshotDebugLogger.log("auto_organize_changed", fields: [
-            "enabled": "\(enabled)"
-        ])
     }
 
     func refreshLocations() {
@@ -350,146 +340,7 @@ final class ScreenshotWatcher {
     }
 
     private func destinationDirectoryURL(for fileURL: URL, context: AppContext) -> URL {
-        let baseDirectoryURL = fileURL.deletingLastPathComponent()
-        guard autoOrganizeScreenshots else { return baseDirectoryURL }
-
-        let appName = filenameGenerator.normalizedAppName(for: context.appName)
-        let folderName = filenameGenerator.organizedFolderName(for: context.appName)
-        let organizedDirectoryURL = baseDirectoryURL.appendingPathComponent(folderName, isDirectory: true)
-        let existingCount = appScreenshotCount(
-            forAppName: appName,
-            in: baseDirectoryURL,
-            organizedDirectoryURL: organizedDirectoryURL
-        )
-        let shouldOrganize = existingCount + 1 > organizationThreshold
-
-        ScreenshotDebugLogger.log("auto_organize_evaluated", fields: [
-            "app": appName,
-            "existing_count": "\(existingCount)",
-            "threshold": "\(organizationThreshold)",
-            "should_organize": "\(shouldOrganize)",
-            "folder": folderName
-        ])
-
-        guard shouldOrganize else { return baseDirectoryURL }
-
-        do {
-            try fileManager.createDirectory(at: organizedDirectoryURL, withIntermediateDirectories: true)
-            migrateExistingScreenshots(
-                forAppName: appName,
-                from: baseDirectoryURL,
-                to: organizedDirectoryURL
-            )
-            return organizedDirectoryURL
-        } catch {
-            ScreenshotDebugLogger.log("auto_organize_folder_failed", fields: [
-                "app": appName,
-                "folder": folderName,
-                "error": error.localizedDescription
-            ])
-            onStatusChange("Could not create \(folderName)")
-            return baseDirectoryURL
-        }
-    }
-
-    private func appScreenshotCount(
-        forAppName appName: String,
-        in baseDirectoryURL: URL,
-        organizedDirectoryURL: URL
-    ) -> Int {
-        appScreenshotFileURLs(forAppName: appName, in: baseDirectoryURL).count
-            + appScreenshotFileURLs(forAppName: appName, in: organizedDirectoryURL).count
-    }
-
-    private func migrateExistingScreenshots(
-        forAppName appName: String,
-        from baseDirectoryURL: URL,
-        to organizedDirectoryURL: URL
-    ) {
-        let screenshots = appScreenshotFileURLs(forAppName: appName, in: baseDirectoryURL)
-
-        for screenshotURL in screenshots {
-            let destinationURL = migrationDestinationURL(for: screenshotURL, in: organizedDirectoryURL)
-            guard destinationURL.standardizedFileURL != screenshotURL.standardizedFileURL else { continue }
-
-            do {
-                try fileManager.moveItem(at: screenshotURL, to: destinationURL)
-                ScreenshotDebugLogger.log("auto_organize_migration_success", fields: [
-                    "app": appName,
-                    "from": screenshotURL.lastPathComponent,
-                    "to": destinationURL.lastPathComponent
-                ])
-            } catch {
-                ScreenshotDebugLogger.log("auto_organize_migration_failed", fields: [
-                    "app": appName,
-                    "file": screenshotURL.lastPathComponent,
-                    "destination": destinationURL.lastPathComponent,
-                    "error": error.localizedDescription
-                ])
-            }
-        }
-    }
-
-    private func appScreenshotFileURLs(forAppName appName: String, in directoryURL: URL) -> [URL] {
-        var isDirectory: ObjCBool = false
-        guard fileManager.fileExists(atPath: directoryURL.path, isDirectory: &isDirectory),
-              isDirectory.boolValue else {
-            return []
-        }
-
-        let fileURLs: [URL]
-        do {
-            fileURLs = try fileManager.contentsOfDirectory(
-                at: directoryURL,
-                includingPropertiesForKeys: [.isRegularFileKey],
-                options: [.skipsHiddenFiles]
-            )
-        } catch {
-            ScreenshotDebugLogger.log("auto_organize_scan_failed", fields: [
-                "directory": directoryURL.path,
-                "error": error.localizedDescription
-            ])
-            return []
-        }
-
-        return fileURLs.filter { isAppScreenshot($0, appName: appName) }
-    }
-
-    private func isAppScreenshot(_ fileURL: URL, appName: String) -> Bool {
-        guard supportedScreenshotExtensions.contains(fileURL.pathExtension.lowercased()) else {
-            return false
-        }
-
-        let values = try? fileURL.resourceValues(forKeys: [.isRegularFileKey])
-        guard values?.isRegularFile == true else { return false }
-
-        let baseName = fileURL.deletingPathExtension().lastPathComponent
-        return baseName == appName || baseName.hasPrefix("\(appName)_")
-    }
-
-    private func migrationDestinationURL(for fileURL: URL, in directoryURL: URL) -> URL {
-        let baseName = fileURL.deletingPathExtension().lastPathComponent
-        let fileExtension = fileURL.pathExtension
-        var suffix = 1
-
-        while true {
-            let suffixText = suffix == 1 ? "" : "_\(suffix)"
-            let candidateBaseName = baseName + suffixText
-            let candidateURL: URL
-
-            if fileExtension.isEmpty {
-                candidateURL = directoryURL.appendingPathComponent(candidateBaseName)
-            } else {
-                candidateURL = directoryURL.appendingPathComponent(candidateBaseName).appendingPathExtension(fileExtension)
-            }
-
-            if candidateURL.standardizedFileURL == fileURL.standardizedFileURL ||
-                !fileManager.fileExists(atPath: candidateURL.path) {
-                return candidateURL
-            }
-
-            suffix += 1
-        }
+        screenshotOrganizer.destinationDirectoryURL(for: fileURL, appName: context.appName)
     }
 
     private func isScreenshotCandidate(_ fileURL: URL) -> Bool {

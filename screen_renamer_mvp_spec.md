@@ -272,6 +272,63 @@ that recreated screenshot is skipped and never renamed.
 
 ---
 
+## App Folder Auto-Organization
+
+Purpose:
+
+Reduce clutter in the screenshot save location only when repeated screenshots
+from the same app show that organization is useful.
+
+Behavior:
+
+- Keep the first 1-4 screenshots from an app in the normal screenshot folder.
+- When the 5th screenshot for that app is processed, create an app folder named
+  `[AppName]_Screenshots`.
+- Move matching renamed screenshots that already exist in the root screenshot
+  folder into the app folder.
+- Rename the triggering screenshot directly into the app folder.
+- Send all future screenshots for that app into the app folder automatically.
+
+Example:
+
+```text
+Chrome_Screenshots/
+├── Chrome_Amazon.png
+├── Chrome_Youtube.png
+├── Chrome_Reddit.png
+├── Chrome_Google.png
+└── Chrome_Figma.png
+```
+
+Edge cases:
+
+- Do not create duplicate folders.
+- If the folder already exists, reuse it.
+- If folder creation or a migration move fails, log the failure and continue the
+  normal rename flow without interrupting the user.
+- Folder names must be filesystem-safe and should use the same app-name cleanup
+  rules as screenshot filenames.
+- Ignore invalid or fallback app names such as missing context instead of
+  creating noisy generic folders.
+- Preserve the existing filename format; organization only changes the
+  destination directory.
+
+Implementation notes:
+
+- Keep the threshold as a code-level configuration value:
+
+```swift
+static let appFolderThreshold = 5
+```
+
+- Keep folder organization separate from screenshot detection and filename
+  generation so later modes can plug in cleanly.
+- Future organization modes could include month folders, sessions, archives, or
+  project grouping. Do not implement those in the MVP.
+- No onboarding, confirmation dialog, popup, or settings UI is required.
+
+---
+
 ## Debug Logging
 
 The app should keep a lightweight diagnostic log so missed renames can be
@@ -854,6 +911,7 @@ Screen Renamer/
 │   ├── ScreenshotWatcher.swift
 │   ├── ContextMatcher.swift
 │   ├── FilenameGenerator.swift
+│   ├── ScreenshotOrganizer.swift
 │   └── PermissionManager.swift
 ├── Models/
 │   └── AppContext.swift

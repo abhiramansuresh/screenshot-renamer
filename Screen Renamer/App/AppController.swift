@@ -7,7 +7,6 @@ final class AppController: ObservableObject {
     static let appDisplayName = "Screen Renamer"
     static let menuBarItemVisibleKey = "MenuBarItemVisible"
     static let launchAtStartupKey = "LaunchAtStartup"
-    static let autoOrganizeScreenshotsKey = "AutoOrganizeScreenshotsByApp"
     static let renameCountKey = "RenameCount"
     static let lastRenamedFileNameKey = "LastRenamedFileName"
     static let lastRenamedAtKey = "LastRenamedAt"
@@ -22,7 +21,6 @@ final class AppController: ObservableObject {
     @Published private(set) var watchedLocationSummary = "Desktop"
     @Published private(set) var accessibilityTrusted = false
     @Published private(set) var launchAtStartupPreferred = AppController.storedLaunchAtStartupPreference()
-    @Published private(set) var autoOrganizeScreenshotsEnabled = UserDefaults.standard.bool(forKey: autoOrganizeScreenshotsKey)
     @Published private(set) var launchAtStartupEnabled = false
     @Published private(set) var launchAtStartupNeedsApproval = false
     @Published private(set) var launchAtStartupAvailable = true
@@ -43,7 +41,6 @@ final class AppController: ObservableObject {
 
     private lazy var screenshotWatcher = ScreenshotWatcher(
         contextTracker: contextTracker,
-        autoOrganizeScreenshots: autoOrganizeScreenshotsEnabled,
         onStatusChange: { [weak self] status in
             self?.lastStatus = status
         },
@@ -171,13 +168,6 @@ final class AppController: ObservableObject {
 
         refreshLaunchAtStartupStatus()
         continueStartupPermissionSequence()
-    }
-
-    func setAutoOrganizeScreenshots(_ enabled: Bool) {
-        autoOrganizeScreenshotsEnabled = enabled
-        UserDefaults.standard.set(enabled, forKey: Self.autoOrganizeScreenshotsKey)
-        screenshotWatcher.setAutoOrganizeScreenshots(enabled)
-        lastStatus = enabled ? "App folder organization enabled" : "App folder organization disabled"
     }
 
     func openDebugLog() {

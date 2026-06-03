@@ -74,6 +74,8 @@ The app is intentionally local-first:
 
 - Detects new screenshots and renames them automatically
 
+- Quietly creates app-specific folders after repeated screenshots from the same app
+
 - Uses a short rolling app/window context buffer to avoid app-switch timing mistakes
 
 - Reads browser tab and domain context where macOS Accessibility APIs expose it
@@ -98,7 +100,7 @@ The app is intentionally local-first:
 
   
 
-Screen Renamer has four main pieces:
+Screen Renamer has five main pieces:
 
   
 
@@ -110,9 +112,13 @@ Screen Renamer has four main pieces:
 
 4. `FilenameGenerator` turns that context into a clean filename such as `Chrome_GitHub_Pull_Request.png`.
 
+5. `ScreenshotOrganizer` quietly creates folders such as `Chrome_Screenshots` once an app accumulates enough screenshots, moves the earlier files, and keeps future screenshots for that app together.
+
   
 
 The app only renames newly detected screenshots. It does not batch-process older screenshots that existed before the watcher started.
+
+Automatic app folder organization begins after 5 screenshots from the same app. The first few screenshots stay in the normal save location; when the threshold is reached, Screen Renamer creates the app folder and moves the matching renamed screenshots there in the background.
 
   
 
@@ -437,6 +443,8 @@ PermissionManager.swift
 ScreenshotDebugLogger.swift
 
 ScreenshotLocationResolver.swift
+
+ScreenshotOrganizer.swift
 
 ScreenshotWatcher.swift
 

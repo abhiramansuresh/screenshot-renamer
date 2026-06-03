@@ -21,6 +21,7 @@
 		B00000000000000000000012 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* MenuBarView.swift */; };
 		B00000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* Assets.xcassets */; };
 		B00000000000000000000017 /* ScreenshotDebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* ScreenshotDebugLogger.swift */; };
+		B00000000000000000000018 /* ScreenshotOrganizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* ScreenshotOrganizer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +42,7 @@
 		A00000000000000000000015 /* screen_renamer.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = screen_renamer.icon; sourceTree = "<group>"; };
 		A00000000000000000000016 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A00000000000000000000017 /* ScreenshotDebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotDebugLogger.swift; sourceTree = "<group>"; };
+		A00000000000000000000018 /* ScreenshotOrganizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotOrganizer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +115,7 @@
 				A00000000000000000000010 /* LoginItemManager.swift */,
 				A00000000000000000000011 /* ScreenshotLocationResolver.swift */,
 				A00000000000000000000017 /* ScreenshotDebugLogger.swift */,
+				A00000000000000000000018 /* ScreenshotOrganizer.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -215,6 +218,7 @@
 				B00000000000000000000011 /* ScreenshotLocationResolver.swift in Sources */,
 				B00000000000000000000012 /* MenuBarView.swift in Sources */,
 				B00000000000000000000017 /* ScreenshotDebugLogger.swift in Sources */,
+				B00000000000000000000018 /* ScreenshotOrganizer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
