@@ -1,6 +1,6 @@
 ![Screen Renamer banner](docs/assets/screen-renamer-banner.png)
 
-Screen Renamer is a tiny macOS menu bar utility that automatically renames screenshots into meaningful, human-readable filenames based on the app and window or browser tab you captured.
+Screen Renamer is a tiny macOS menu bar utility that automatically renames screenshots into meaningful, human-readable filenames using local OCR plus the app, window, browser tab, and browser domain you captured.
 
   
 
@@ -30,6 +30,10 @@ Finder_Game_Assets.png
 
 Chrome_Research_Notes.png
 
+ConflictResolution_Rule3_GitHub.png
+
+Year8_Science_Timetable_GoogleSheets.png
+
 ```
 
   
@@ -42,7 +46,7 @@ The goal is simple: take screenshots as usual, then let the app clean up the fil
 
   
 
-macOS screenshots are easy to create but hard to find later. Default screenshot filenames tell you when a screenshot was taken, but not what it was about. Screen Renamer keeps screenshots searchable using context that already exists on your Mac: the foreground app, focused window title, selected browser tab, and browser domain where available.
+macOS screenshots are easy to create but hard to find later. Default screenshot filenames tell you when a screenshot was taken, but not what it was about. Screen Renamer keeps screenshots searchable using visible text in the image and context that already exists on your Mac: the foreground app, focused window title, selected browser tab, and browser domain where available.
 
   
 
@@ -58,7 +62,9 @@ The app is intentionally local-first:
 
 - No image upload
 
-- No OCR or AI naming
+- No cloud OCR, LLMs, or AI naming
+
+- Native Apple Vision OCR runs locally on your Mac
 
   
 
@@ -80,6 +86,10 @@ The app is intentionally local-first:
 
 - Reads browser tab and domain context where macOS Accessibility APIs expose it
 
+- Uses the macOS Vision framework to extract visible text from screenshots locally
+
+- Scores OCR text deterministically using confidence, bounding boxes, centrality, size, and noise filtering
+
 - Extracts browser domains when available to avoid noisy or duplicate filename segments
 
 - Sanitizes filenames for macOS compatibility
@@ -100,7 +110,7 @@ The app is intentionally local-first:
 
   
 
-Screen Renamer has five main pieces:
+Screen Renamer has seven main pieces:
 
   
 
@@ -110,9 +120,13 @@ Screen Renamer has five main pieces:
 
 3. `ContextMatcher` matches the screenshot timestamp to the best available recent context.
 
-4. `FilenameGenerator` turns that context into a clean filename such as `Chrome_GitHub_Pull_Request.png`.
+4. `OCRProcessor` runs a local `VNRecognizeTextRequest` against the screenshot and returns structured OCR tokens with text, confidence, and bounding boxes.
 
-5. `ScreenshotOrganizer` quietly creates folders such as `Chrome_Screenshots` once an app accumulates enough screenshots, moves the earlier files, and keeps future screenshots for that app together.
+5. `NoiseFilter` and `TextScorer` discard menu-bar/browser-chrome junk and rank meaningful visible phrases.
+
+6. `FilenameGenerator` prefers high-confidence OCR phrases for names such as `ConflictResolution_Rule3_GitHub.png`, then falls back to context names such as `Chrome_GitHub_Pull_Request.png` when OCR is weak or empty.
+
+7. `ScreenshotOrganizer` quietly creates folders such as `Chrome_Screenshots` once an app accumulates enough screenshots, moves the earlier files, and keeps future screenshots for that app together.
 
   
 
@@ -120,17 +134,19 @@ The app only renames newly detected screenshots. It does not batch-process older
 
 Automatic app folder organization begins after 5 screenshots from the same app. The first few screenshots stay in the normal save location; when the threshold is reached, Screen Renamer creates the app folder and moves the matching renamed screenshots there in the background.
 
+OCR naming is intentionally conservative. The app selects only a few semantic chunks, favors larger and more central text, penalizes menu bar and browser chrome noise, and keeps output deterministic. If the OCR result is low confidence or not meaningful, the screenshot is renamed with the existing app/window/tab fallback path instead.
+
   
 
 ## Privacy
 
   
 
-Screen Renamer runs entirely on your Mac. It does not send screenshot names, window titles, URLs, images, logs, or any other data to a server.
+Screen Renamer runs entirely on your Mac. It does not send screenshot names, window titles, URLs, images, OCR text, logs, or any other data to a server.
 
   
 
-The app asks for Accessibility access because macOS requires it before an app can read the active app and window title. That context is used only locally to generate filenames.
+The app asks for Accessibility access because macOS requires it before an app can read the active app and window title. OCR uses Apple's local Vision framework. Both signals are used only locally to generate filenames.
 
   
 
@@ -145,6 +161,8 @@ The app asks for Accessibility access because macOS requires it before an app ca
 - Swift 5
 
 - No Node.js, npm, or third-party Swift packages are required
+
+- No network access, OCR service, or model download is required
 
   
 
@@ -310,13 +328,13 @@ To change the system screenshot location yourself, press `Cmd+Shift+5`, choose `
 
   
 
-Generated names use this general shape:
+When OCR has enough signal, generated names use this general shape:
 
   
 
 ```text
 
-[App]_[Page_Or_Window_Title].[extension]
+[KeyPhrase1]_[KeyPhrase2]_[AppOrSite].[extension]
 
 ```
 
@@ -325,6 +343,26 @@ Generated names use this general shape:
 Examples:
 
   
+
+```text
+
+Visible text "ConflictResolution_TestDriveCrawl.md" + "Rule 3" on GitHub -> ConflictResolution_TestDriveCrawl_Rule3_GitHub.png
+
+Visible text "Year 8 Science Timetable" in Google Sheets -> Year8_Science_Timetable_GoogleSheets.png
+
+Visible text "PDA: Onboarding / Figma?" -> PDA_Onboarding_Figma.png
+
+```
+
+When OCR is weak or empty, Screen Renamer falls back to context naming:
+
+```text
+
+[App]_[Page_Or_Window_Title].[extension]
+
+```
+
+Examples:
 
 ```text
 
@@ -341,6 +379,10 @@ Finder + "Game Assets" -> Finder_Game_Assets.png
 The generator:
 
   
+
+- Selects only a few high-scoring OCR chunks
+
+- Penalizes menu bar text, browser chrome, timestamps, repeated fragments, and tiny UI labels
 
 - Normalizes app names like `Google Chrome` to `Chrome`
 
@@ -426,6 +468,8 @@ Models/
 
 AppContext.swift
 
+OCRToken.swift
+
 Services/
 
 ContextMatcher.swift
@@ -435,6 +479,10 @@ ContextTracker.swift
 DirectoryWatcher.swift
 
 FilenameGenerator.swift
+
+NoiseFilter.swift
+
+OCRProcessor.swift
 
 LoginItemManager.swift
 
@@ -446,11 +494,19 @@ ScreenshotLocationResolver.swift
 
 ScreenshotOrganizer.swift
 
+ScreenshotProcessor.swift
+
 ScreenshotWatcher.swift
+
+TextScorer.swift
 
 UI/
 
 MenuBarView.swift
+
+Screen RenamerTests/
+
+OCRNamingTests.swift
 
 ```
 
@@ -480,9 +536,7 @@ MenuBarView.swift
 
 - The MVP assumes English macOS screenshot filenames beginning with `Screenshot`.
 
-- It does not inspect image contents.
-
-- It does not OCR text from screenshots.
+- OCR currently starts with English text recognition and conservative deterministic scoring.
 
 - It does not rename screenshots that existed before the app started watching.
 

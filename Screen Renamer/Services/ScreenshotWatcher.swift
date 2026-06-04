@@ -3,8 +3,7 @@ import Foundation
 @MainActor
 final class ScreenshotWatcher {
     private let contextTracker: ContextTracker
-    private let filenameGenerator = FilenameGenerator()
-    private let screenshotOrganizer = ScreenshotOrganizer()
+    private let screenshotProcessor = ScreenshotProcessor()
     private let fileManager = FileManager.default
     private let supportedScreenshotExtensions: Set<String> = ["png", "jpg", "jpeg", "heic", "tiff", "pdf"]
     private let onStatusChange: (String) -> Void
@@ -248,11 +247,13 @@ final class ScreenshotWatcher {
         ])
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
-            self?.processScreenshot(at: fileURL, originalPath: path)
+            Task { @MainActor in
+                await self?.processScreenshot(at: fileURL, originalPath: path)
+            }
         }
     }
 
-    private func processScreenshot(at fileURL: URL, originalPath: String) {
+    private func processScreenshot(at fileURL: URL, originalPath: String) async {
         pendingScreenshotPaths.remove(originalPath)
         ScreenshotDebugLogger.log("process_begin", fields: [
             "file": fileURL.lastPathComponent,
@@ -286,12 +287,24 @@ final class ScreenshotWatcher {
         let captureTime = screenshotCaptureTime(for: fileURL)
         let context = screenshotContext(for: captureTime)
             ?? AppContext(timestamp: captureTime.fallbackTimestamp, appName: "Screenshot", windowTitle: nil)
-        let destinationDirectoryURL = destinationDirectoryURL(for: fileURL, context: context)
-        let destinationURL = filenameGenerator.destinationURL(
-            for: fileURL,
-            context: context,
-            directoryURL: destinationDirectoryURL
-        )
+        let processingPlan = await screenshotProcessor.processingPlan(for: fileURL, context: context)
+        let destinationURL = processingPlan.destinationURL
+
+        guard !isPaused else {
+            ScreenshotDebugLogger.log("process_skip", fields: [
+                "file": fileURL.lastPathComponent,
+                "reason": "paused_after_ocr"
+            ])
+            return
+        }
+
+        guard fileManager.fileExists(atPath: fileURL.path) else {
+            ScreenshotDebugLogger.log("process_skip", fields: [
+                "file": fileURL.lastPathComponent,
+                "reason": "file_missing_after_ocr"
+            ])
+            return
+        }
 
         ScreenshotDebugLogger.log("process_resolved", fields: [
             "file": fileURL.lastPathComponent,
@@ -303,7 +316,8 @@ final class ScreenshotWatcher {
             "context_domain": context.browserDomain ?? "",
             "context_timestamp": Self.debugDateFormatter.string(from: context.timestamp),
             "destination": destinationURL.lastPathComponent,
-            "destination_directory": destinationURL.deletingLastPathComponent().lastPathComponent
+            "destination_directory": processingPlan.destinationDirectoryURL.lastPathComponent,
+            "ocr_token_count": "\(processingPlan.ocrResult?.tokens.count ?? 0)"
         ])
 
         guard destinationURL.standardizedFileURL != fileURL.standardizedFileURL else {
@@ -337,10 +351,6 @@ final class ScreenshotWatcher {
             ])
             onStatusChange("Could not rename \(fileURL.lastPathComponent)")
         }
-    }
-
-    private func destinationDirectoryURL(for fileURL: URL, context: AppContext) -> URL {
-        screenshotOrganizer.destinationDirectoryURL(for: fileURL, appName: context.appName)
     }
 
     private func isScreenshotCandidate(_ fileURL: URL) -> Bool {

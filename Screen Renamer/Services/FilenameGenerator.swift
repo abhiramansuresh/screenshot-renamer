@@ -6,8 +6,12 @@ struct FilenameGenerator {
     private let maxBaseNameLength = 80
     private let maxTitleWords = 5
     private let maxSearchQueryWords = 4
+    private let maxOCRChunks = 3
+    private let minimumOCRScore = 38.0
+    private let minimumOCRConfidence: Float = 0.62
     private let illegalCharacters = CharacterSet(charactersIn: "/\\:?*\"<>|")
     private let trimCharacters = CharacterSet(charactersIn: "._- ")
+    private let textScorer = TextScorer()
     private let searchEngineNames: Set<String> = ["google", "bing", "duckduckgo"]
     private let knownAcronyms: Set<String> = [
         "AI", "API", "CPU", "CSS", "DNS", "GPU", "HTML", "HTTP", "IP", "JSON",
@@ -47,16 +51,19 @@ struct FilenameGenerator {
     ]
 
     func destinationURL(for originalURL: URL, context: AppContext, directoryURL: URL? = nil) -> URL {
+        destinationURL(for: originalURL, context: context, ocrResult: nil, directoryURL: directoryURL)
+    }
+
+    func destinationURL(
+        for originalURL: URL,
+        context: AppContext,
+        ocrResult: OCRResult?,
+        directoryURL: URL? = nil
+    ) -> URL {
         let directoryURL = directoryURL ?? originalURL.deletingLastPathComponent()
         let fileExtension = originalURL.pathExtension.isEmpty ? "png" : originalURL.pathExtension
-
-        let appName = cleanedAppName(context.appName)
-        let domainName = cleanedBrowserDomain(context.browserDomain)
-        let tabName = cleanedTabName(context.tabName, appName: context.appName)
-        let fallbackTitle = cleanedWindowTitle(context.windowTitle, appName: context.appName)
-        let pageName = distinctPageName(tabName ?? fallbackTitle, domainName: domainName)
-        let baseName = [appName, pageName].compactMap { $0 }.joined(separator: "_")
-        let safeBaseName = baseName.isEmpty ? "Screenshot" : truncatedBaseName(baseName, maxLength: maxBaseNameLength)
+        let safeBaseName = ocrBaseName(from: ocrResult, context: context)
+            ?? contextBaseName(for: context)
 
         return availableURL(
             in: directoryURL,
@@ -72,6 +79,174 @@ struct FilenameGenerator {
 
     func normalizedAppName(for appName: String) -> String {
         cleanedAppName(appName)
+    }
+
+    private func contextBaseName(for context: AppContext) -> String {
+        let appName = cleanedAppName(context.appName)
+        let domainName = cleanedBrowserDomain(context.browserDomain)
+        let tabName = cleanedTabName(context.tabName, appName: context.appName)
+        let fallbackTitle = cleanedWindowTitle(context.windowTitle, appName: context.appName)
+        let pageName = distinctPageName(tabName ?? fallbackTitle, domainName: domainName)
+        let baseName = [appName, pageName].compactMap { $0 }.joined(separator: "_")
+
+        return baseName.isEmpty ? "Screenshot" : truncatedBaseName(baseName, maxLength: maxBaseNameLength)
+    }
+
+    private func ocrBaseName(from ocrResult: OCRResult?, context: AppContext) -> String? {
+        guard let ocrResult else { return nil }
+
+        let scoredPhrases = textScorer.scoredPhrases(from: ocrResult.tokens, context: context)
+        guard let topPhrase = scoredPhrases.first,
+              topPhrase.score >= minimumOCRScore,
+              topPhrase.confidence >= minimumOCRConfidence else {
+            return nil
+        }
+
+        var components: [String] = []
+        let appLabel = contextualOCRLabel(for: context, ocrResult: ocrResult)
+        let formattedAppLabel = formattedOCRChunk(appLabel)
+
+        for phrase in scoredPhrases {
+            guard components.count < maxOCRChunks,
+                  phrase.score >= 24,
+                  let component = formattedOCRChunk(phrase.text),
+                  !isDuplicate(component, of: formattedAppLabel),
+                  !components.contains(where: { isDuplicate($0, of: component) }) else {
+                continue
+            }
+
+            components.append(component)
+        }
+
+        guard !components.isEmpty else { return nil }
+
+        if let formattedAppLabel,
+           !components.contains(where: { containsDuplicateLabel(formattedAppLabel, in: $0) }) {
+            components.append(formattedAppLabel)
+        }
+
+        return sanitize(components.joined(separator: "_"), maxLength: maxBaseNameLength)
+    }
+
+    private func contextualOCRLabel(for context: AppContext, ocrResult: OCRResult) -> String {
+        let visibleText = (
+            ocrResult.tokens.map(\.text)
+                + [context.windowTitle, context.tabName, context.browserDomain].compactMap { $0 }
+        )
+        .joined(separator: " ")
+        .lowercased()
+
+        if visibleText.contains("google sheets") || visibleText.contains("spreadsheet") {
+            return "GoogleSheets"
+        }
+
+        if visibleText.contains("google docs") {
+            return "GoogleDocs"
+        }
+
+        if visibleText.contains("google slides") {
+            return "GoogleSlides"
+        }
+
+        if visibleText.contains("github") {
+            return "GitHub"
+        }
+
+        if visibleText.contains("figma") {
+            return "Figma"
+        }
+
+        if visibleText.contains("notion") {
+            return "Notion"
+        }
+
+        return cleanedBrowserDomain(context.browserDomain) ?? cleanedAppName(context.appName)
+    }
+
+    private func formattedOCRChunk(_ text: String?) -> String? {
+        guard var text = text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
+            return nil
+        }
+
+        text = text
+            .replacingOccurrences(
+                of: #"(?i)\.(swift|md|txt|pdf|png|jpe?g|heic|fig|json|csv|xlsx?|docx?|pptx?|html?|css|js|ts|tsx|jsx)\b"#,
+                with: "",
+                options: .regularExpression
+            )
+            .replacingOccurrences(of: #"(?i)\bhttps?://\S+"#, with: " ", options: .regularExpression)
+            .replacingOccurrences(of: #"[|:()[\]{}]+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: trimCharacters)
+
+        guard !text.isEmpty else { return nil }
+
+        let underscoreSegments = text
+            .split(separator: "_")
+            .map(String.init)
+            .compactMap(formattedOCRSegment)
+
+        guard !underscoreSegments.isEmpty else { return nil }
+        return sanitize(underscoreSegments.joined(separator: "_"), maxLength: nil)
+    }
+
+    private func formattedOCRSegment(_ segment: String) -> String? {
+        let words = segment
+            .replacingOccurrences(of: #"[^A-Za-z0-9+#]+"#, with: " ", options: .regularExpression)
+            .split(separator: " ")
+            .map(String.init)
+
+        guard !words.isEmpty else { return nil }
+
+        let formattedWords = words.map(formattedOCRWord)
+
+        if formattedWords.count == 2,
+           formattedWords[0].range(of: #"^[A-Za-z]{2,6}$"#, options: .regularExpression) != nil,
+           formattedWords[1].range(of: #"^\d+$"#, options: .regularExpression) != nil {
+            return formattedWords.joined()
+        }
+
+        return formattedWords.joined(separator: "_")
+    }
+
+    private func formattedOCRWord(_ word: String) -> String {
+        let uppercasedWord = word.uppercased()
+        let lowercasedWord = word.lowercased()
+
+        if (knownAcronyms.contains(uppercasedWord) || word == uppercasedWord),
+           (2...5).contains(word.count) {
+            return uppercasedWord
+        }
+
+        if let specialTitleWord = specialTitleWords[lowercasedWord] {
+            return specialTitleWord
+        }
+
+        if word.range(of: #"[a-z][A-Z]"#, options: .regularExpression) != nil {
+            return word
+        }
+
+        if word.range(of: #"^\d+$"#, options: .regularExpression) != nil {
+            return word
+        }
+
+        guard let firstCharacter = lowercasedWord.first else { return lowercasedWord }
+        return firstCharacter.uppercased() + lowercasedWord.dropFirst()
+    }
+
+    private func isDuplicate(_ lhs: String?, of rhs: String?) -> Bool {
+        guard let lhs, let rhs else { return false }
+        return comparableName(lhs) == comparableName(rhs)
+    }
+
+    private func containsDuplicateLabel(_ label: String, in component: String) -> Bool {
+        let comparableLabel = comparableName(label)
+        let comparableComponent = comparableName(component)
+
+        guard comparableLabel.count >= 3 else {
+            return comparableComponent == comparableLabel
+        }
+
+        return comparableComponent == comparableLabel || comparableComponent.contains(comparableLabel)
     }
 
     private func cleanedAppName(_ appName: String) -> String {

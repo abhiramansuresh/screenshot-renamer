@@ -22,7 +22,23 @@
 		B00000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* Assets.xcassets */; };
 		B00000000000000000000017 /* ScreenshotDebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* ScreenshotDebugLogger.swift */; };
 		B00000000000000000000018 /* ScreenshotOrganizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* ScreenshotOrganizer.swift */; };
+		B00000000000000000000019 /* OCRToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* OCRToken.swift */; };
+		B00000000000000000000020 /* OCRProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000020 /* OCRProcessor.swift */; };
+		B00000000000000000000021 /* NoiseFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000021 /* NoiseFilter.swift */; };
+		B00000000000000000000022 /* TextScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000022 /* TextScorer.swift */; };
+		B00000000000000000000023 /* ScreenshotProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000023 /* ScreenshotProcessor.swift */; };
+		B00000000000000000000024 /* OCRNamingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* OCRNamingTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E00000000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D00000000000000000000001;
+			remoteInfo = "Screen Renamer";
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		A00000000000000000000001 /* ScreenRenamerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRenamerApp.swift; sourceTree = "<group>"; };
@@ -43,10 +59,24 @@
 		A00000000000000000000016 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A00000000000000000000017 /* ScreenshotDebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotDebugLogger.swift; sourceTree = "<group>"; };
 		A00000000000000000000018 /* ScreenshotOrganizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotOrganizer.swift; sourceTree = "<group>"; };
+		A00000000000000000000019 /* OCRToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRToken.swift; sourceTree = "<group>"; };
+		A00000000000000000000020 /* OCRProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRProcessor.swift; sourceTree = "<group>"; };
+		A00000000000000000000021 /* NoiseFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoiseFilter.swift; sourceTree = "<group>"; };
+		A00000000000000000000022 /* TextScorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextScorer.swift; sourceTree = "<group>"; };
+		A00000000000000000000023 /* ScreenshotProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotProcessor.swift; sourceTree = "<group>"; };
+		A00000000000000000000024 /* Screen RenamerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Screen RenamerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000025 /* OCRNamingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRNamingTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C00000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C00000000000000000000013 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -60,6 +90,7 @@
 			isa = PBXGroup;
 			children = (
 				C00000000000000000000004 /* Screen Renamer */,
+				C00000000000000000000015 /* Screen RenamerTests */,
 				C00000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -68,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000014 /* Screen Renamer.app */,
+				A00000000000000000000024 /* Screen RenamerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -99,6 +131,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000003 /* AppContext.swift */,
+				A00000000000000000000019 /* OCRToken.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -116,6 +149,10 @@
 				A00000000000000000000011 /* ScreenshotLocationResolver.swift */,
 				A00000000000000000000017 /* ScreenshotDebugLogger.swift */,
 				A00000000000000000000018 /* ScreenshotOrganizer.swift */,
+				A00000000000000000000020 /* OCRProcessor.swift */,
+				A00000000000000000000021 /* NoiseFilter.swift */,
+				A00000000000000000000022 /* TextScorer.swift */,
+				A00000000000000000000023 /* ScreenshotProcessor.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -134,6 +171,14 @@
 				A00000000000000000000015 /* screen_renamer.icon */,
 			);
 			path = Assets;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000015 /* Screen RenamerTests */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000025 /* OCRNamingTests.swift */,
+			);
+			path = "Screen RenamerTests";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -156,6 +201,24 @@
 			productReference = A00000000000000000000014 /* Screen Renamer.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D00000000000000000000002 /* Screen RenamerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F00000000000000000000010 /* Build configuration list for PBXNativeTarget "Screen RenamerTests" */;
+			buildPhases = (
+				C00000000000000000000012 /* Sources */,
+				C00000000000000000000013 /* Frameworks */,
+				C00000000000000000000014 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D00000000000000000000003 /* PBXTargetDependency */,
+			);
+			name = "Screen RenamerTests";
+			productName = "Screen RenamerTests";
+			productReference = A00000000000000000000024 /* Screen RenamerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -168,6 +231,10 @@
 				TargetAttributes = {
 					D00000000000000000000001 = {
 						CreatedOnToolsVersion = 16.2;
+					};
+					D00000000000000000000002 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = D00000000000000000000001;
 					};
 				};
 			};
@@ -185,6 +252,7 @@
 			projectRoot = "";
 			targets = (
 				D00000000000000000000001 /* Screen Renamer */,
+				D00000000000000000000002 /* Screen RenamerTests */,
 			);
 		};
 /* End PBXProject section */
@@ -195,6 +263,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				B00000000000000000000014 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C00000000000000000000014 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -219,10 +294,31 @@
 				B00000000000000000000012 /* MenuBarView.swift in Sources */,
 				B00000000000000000000017 /* ScreenshotDebugLogger.swift in Sources */,
 				B00000000000000000000018 /* ScreenshotOrganizer.swift in Sources */,
+				B00000000000000000000019 /* OCRToken.swift in Sources */,
+				B00000000000000000000020 /* OCRProcessor.swift in Sources */,
+				B00000000000000000000021 /* NoiseFilter.swift in Sources */,
+				B00000000000000000000022 /* TextScorer.swift in Sources */,
+				B00000000000000000000023 /* ScreenshotProcessor.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C00000000000000000000012 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000024 /* OCRNamingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D00000000000000000000003 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D00000000000000000000001 /* Screen Renamer */;
+			targetProxy = E00000000000000000000002 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		F00000000000000000000004 /* Debug */ = {
@@ -400,6 +496,56 @@
 			};
 			name = Release;
 		};
+		F00000000000000000000008 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(SRCROOT)/Debug";
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amorphicLabs.ScreenshotRenamerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				SYMROOT = Debug/Build;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Screen Renamer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Screen Renamer";
+			};
+			name = Debug;
+		};
+		F00000000000000000000009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(SRCROOT)/Prod";
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amorphicLabs.ScreenshotRenamerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				SYMROOT = Prod/Build;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Screen Renamer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Screen Renamer";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -417,6 +563,15 @@
 			buildConfigurations = (
 				F00000000000000000000006 /* Debug */,
 				F00000000000000000000007 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F00000000000000000000010 /* Build configuration list for PBXNativeTarget "Screen RenamerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F00000000000000000000008 /* Debug */,
+				F00000000000000000000009 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

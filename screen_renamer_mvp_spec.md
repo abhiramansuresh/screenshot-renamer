@@ -2,13 +2,13 @@
 
 ## Vision
 
-A tiny macOS utility that automatically renames screenshots into meaningful, human-readable filenames based on the app and window/tab the screenshot came from.
+A tiny macOS utility that automatically renames screenshots into meaningful, human-readable filenames based on visible screenshot text plus the app and window/tab the screenshot came from.
 
 The app should feel invisible:
 
 > Install → grant permissions → forget it exists.
 
-No manual input. No cloud. No server. Runs locally.
+No manual input. No cloud. No server. No LLMs. Runs locally.
 
 ---
 
@@ -20,9 +20,9 @@ Replace default screenshot filenames like:
 
 with:
 
-`Figma_Login_Flow.png`
+`ConflictResolution_Rule3_GitHub.png`
 
-`Safari_Amazon_Checkout.png`
+`Year8_Science_Timetable_GoogleSheets.png`
 
 `Finder_Game_Assets.png`
 
@@ -50,6 +50,7 @@ without any user interaction.
 - No friction
 - Reliable over clever
 - Local-first (no internet/server)
+- Deterministic OCR naming over creative or inferred naming
 
 ---
 
@@ -62,6 +63,8 @@ without any user interaction.
 - Watches screenshot save location
 - Detects newly created screenshots
 - Automatically renames screenshots
+- Uses native macOS Vision OCR to extract visible text locally
+- Scores and filters OCR text with deterministic heuristics
 - Captures app + active window title context
 - Uses rolling context heuristic to avoid app-switch timing issues
 - Filename cleanup/sanitization
@@ -69,14 +72,14 @@ without any user interaction.
 
 ### Explicitly NOT Included (v1)
 
-- OCR
 - AI naming
-- Image understanding
+- LLMs or cloud APIs
+- Cloud OCR
 - Popups
 - User editing
 - Batch rename
 - Finder extension
-- Smart folder organization
+- Advanced organization modes beyond app folders
 - Sync/cloud
 - Settings/preferences UI
 - Localization support
@@ -86,12 +89,15 @@ without any user interaction.
 
 # Architecture Overview
 
-The app has four responsibilities:
+The app has seven responsibilities:
 
 1. Context Tracker
 2. Screenshot Watcher
 3. Context Matcher
-4. Filename Renamer
+4. OCR Processor
+5. Text Scorer / Noise Filter
+6. Filename Renamer
+7. Screenshot Organizer
 
 ---
 
@@ -421,13 +427,87 @@ Use nearest timestamp match.
 
 ---
 
-# 4. Filename Renamer
+# 4. OCR Processor and Text Scoring
+
+## Native OCR Pipeline
+
+## Purpose
+
+Extract visible screenshot text locally and use it as the primary naming signal
+when the OCR result is strong enough.
+
+## Approach
+
+Use Apple's Vision framework:
+
+```swift
+VNRecognizeTextRequest
+```
+
+The OCR processor returns structured tokens rather than one flattened string:
+
+```swift
+struct OCRToken {
+    let text: String
+    let confidence: Float
+    let boundingRect: CGRect
+}
+```
+
+OCR is asynchronous and non-blocking. If Vision fails, returns no tokens, or
+produces weak text, the app falls back to the existing app/window/tab filename
+generation path.
+
+## Scoring
+
+The scorer is deterministic and explainable. It favors:
+
+- High confidence
+- Larger visible text
+- Text near the center of the screenshot
+- Filenames, headings, document names, and project names
+- App-relevant visible terms
+
+It penalizes:
+
+- Menu bar text
+- Browser chrome
+- Time/date strings
+- Generic UI words
+- Repeated fragments
+- Tiny sidebars and low-value single words
+
+This keeps the app from feeling "smart but wrong." Boring reliable names are
+preferred over clever names.
+
+---
+
+# 5. Filename Renamer
 
 ## Purpose
 
 Generate readable filenames.
 
 ### Naming Formula
+
+When OCR has enough signal:
+
+```text
+[KeyPhrase1]_[KeyPhrase2]_[AppOrSite]
+```
+
+Examples:
+
+```text
+ConflictResolution_TestDriveCrawl_Rule3_GitHub.png
+Year8_Science_Timetable_GoogleSheets.png
+PDA_Onboarding_Figma.png
+```
+
+Select only a few semantic chunks. Do not overstuff names with every visible
+piece of text.
+
+When OCR is weak or empty, fall back to the context-based format:
 
 ```text
 [App]_[PageName]
@@ -442,8 +522,8 @@ Chrome_How_To_Center_Div.png
 Finder_Game_Assets.png
 ```
 
-The app name is always first. `Google Chrome` is normalized to `Chrome`, and
-`Microsoft Edge` is normalized to `Edge`.
+In the context fallback path, the app name is always first. `Google Chrome` is
+normalized to `Chrome`, and `Microsoft Edge` is normalized to `Edge`.
 
 The page name comes from the selected tab title when available, otherwise the
 focused window title.
