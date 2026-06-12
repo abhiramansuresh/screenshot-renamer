@@ -89,15 +89,20 @@ without any user interaction.
 
 # Architecture Overview
 
-The app has seven responsibilities:
+The app has eight runtime responsibilities:
 
 1. Context Tracker
 2. Screenshot Watcher
 3. Context Matcher
-4. OCR Processor
-5. Text Scorer / Noise Filter
-6. Filename Renamer
-7. Screenshot Organizer
+4. Window Metadata Provider
+5. OCR Processor
+6. Text Scorer / Noise Filter / Branding Suppressor
+7. Filename Renamer
+8. Screenshot Organizer
+
+The naming logic also has a non-runtime benchmark suite under
+`Tests/ScreenshotNamingBenchmark/`. The benchmark records known naming gaps
+before each quality phase so improvements and regressions are measurable.
 
 ---
 
@@ -427,7 +432,53 @@ Use nearest timestamp match.
 
 ---
 
-# 4. OCR Processor and Text Scoring
+# 4. Window Metadata Provider
+
+## Purpose
+
+Use active-window metadata as the highest-priority local naming signal.
+
+Many apps expose the page, document, folder, or frame name through macOS
+Accessibility before OCR is needed. This is deterministic, local, and usually
+more precise than visible UI text.
+
+### Data model
+
+```swift
+struct WindowMetadata {
+    let appName: String
+    let windowTitle: String?
+    let documentName: String?
+}
+```
+
+## Approach
+
+`ContextTracker` captures the frontmost application, focused or main window
+title, and `AXDocument` where available. `ScreenshotProcessor` derives
+`WindowMetadata` from the timestamp-matched `AppContext` so processing-time app
+switches cannot override the screenshot's capture-time window metadata.
+
+Decision rules:
+
+- A window title with at least 4 meaningful words is used as the primary name
+  candidate before OCR.
+- A document name is used as a fallback before OCR when the window title is
+  short or generic.
+- If metadata is unavailable or low-value, the existing OCR and context fallback
+  paths continue unchanged.
+
+Examples:
+
+```text
+Manual Curriculum Pipeline Inspector -> ManualCurriculumPipelineInspector.png
+Catch-up on same day -> CatchUpOnSameDay.png
+ScreenRenamer_DebugBuild -> ScreenRenamer_DebugBuild.png
+```
+
+---
+
+# 5. OCR Processor and Text Scoring
 
 ## Native OCR Pipeline
 
@@ -458,6 +509,52 @@ OCR is asynchronous and non-blocking. If Vision fails, returns no tokens, or
 produces weak text, the app falls back to the existing app/window/tab filename
 generation path.
 
+## Branding Suppression
+
+`BrandingSuppressor` holds a deterministic static stopword list for low-value
+brand, app, and navigation words:
+
+```text
+BrainMo, Chrome, Figma, Finder, Safari, Xcode, Dashboard, Settings,
+Home, Profile, Untitled, Overview
+```
+
+In OCR phrase scoring, a phrase made only of suppressed words receives score
+`0` as a primary candidate. Mixed phrases are demoted but not deleted, so
+branding can still appear later as context or suffix fallback when the primary
+subject is useful.
+
+## OCR Document Name Extraction
+
+Before generic OCR phrases are used for naming, filename-like OCR tokens are
+promoted as high-priority OCR candidates. Supported extensions:
+
+```text
+.md .docx .pdf .pptx .xlsx .swift .fig
+```
+
+Example:
+
+```text
+ConflictResolution_TestDriveCrawl.md + Rule 3 + GitHub
+→ ConflictResolution_TestDriveCrawl_Rule3_GitHub.png
+```
+
+This sits below window metadata and captured document metadata, but above
+generic OCR phrases.
+
+## Privacy-Restricted OCR Apps
+
+For privacy-sensitive chat apps, OCR text must not become a filename candidate:
+
+```text
+WhatsApp, Messages, Slack, Discord, Teams
+```
+
+Only safe app/window context such as contact, channel, or group names may drive
+the fallback filename for these apps. Message body text, including
+filename-looking text, is ignored by the OCR naming path.
+
 ## Scoring
 
 The scorer is deterministic and explainable. It favors:
@@ -466,12 +563,15 @@ The scorer is deterministic and explainable. It favors:
 - Larger visible text
 - Text near the center of the screenshot
 - Filenames, headings, document names, and project names
+- Filename-like OCR tokens with supported document extensions
 - App-relevant visible terms
 
 It penalizes:
 
 - Menu bar text
 - Browser chrome
+- Branding/app/navigation words as primary OCR candidates
+- OCR text in privacy-sensitive chat apps
 - Time/date strings
 - Generic UI words
 - Repeated fragments
@@ -482,13 +582,28 @@ preferred over clever names.
 
 ---
 
-# 5. Filename Renamer
+# 6. Filename Renamer
 
 ## Purpose
 
 Generate readable filenames.
 
 ### Naming Formula
+
+When window metadata has enough signal:
+
+```text
+[WindowTitle]
+[DocumentName]
+```
+
+Examples:
+
+```text
+ManualCurriculumPipelineInspector.png
+CatchUpOnSameDay.png
+ScreenRenamer_DebugBuild.png
+```
 
 When OCR has enough signal:
 
@@ -506,6 +621,21 @@ PDA_Onboarding_Figma.png
 
 Select only a few semantic chunks. Do not overstuff names with every visible
 piece of text.
+
+## Current Naming Pipeline
+
+The full filename decision order is:
+
+```text
+1. Capture-time window metadata title
+2. Capture-time document name metadata
+3. OCR document filename candidate
+4. Generic OCR candidates
+5. App or site suffix fallback
+6. App/window/tab context fallback
+```
+
+For privacy-sensitive chat apps, steps 3 and 4 are skipped entirely.
 
 When OCR is weak or empty, fall back to the context-based format:
 
@@ -557,6 +687,47 @@ Fallback filename when no app/title data survives cleanup:
 ```text
 Screenshot.png
 ```
+
+## Screenshot Naming Benchmark
+
+The benchmark suite lives outside the app runtime:
+
+```text
+Tests/ScreenshotNamingBenchmark/
+```
+
+Each case records:
+
+```swift
+struct BenchmarkCase {
+    let screenshotPath: String
+    let expectedName: String
+    let generatedName: String
+    let passed: Bool
+}
+```
+
+Phase 1 benchmark cases:
+
+```text
+Chrome_BrainMo -> ManualCurriculumPipelineInspector
+Chrome_GitHub_Document -> ConflictResolution_TestDriveCrawl_Rule3_GitHub
+Figma_BrainMo -> CatchUpOnSameDay
+Finder_Debug -> ScreenRenamer_DebugBuild
+Figma_BrainMo_UI_Kit -> TypographySystem
+VLC_In_The_Grey -> InTheGrey20261080pWebripX26510bitAAC51YTSBZMp4
+```
+
+The benchmark has two runners:
+
+```text
+Tests/ScreenshotNamingBenchmark/run_benchmark.sh
+Screen RenamerTests/ScreenshotNamingBenchmarkTests.swift
+```
+
+The standalone script executes the same naming logic directly from source and
+does not depend on Xcode's hosted XCTest runner. Both paths print a pass/fail
+report and keep current misses as measurements rather than immediate failures.
 
 ---
 
@@ -991,12 +1162,23 @@ Screen Renamer/
 │   ├── ScreenshotWatcher.swift
 │   ├── ContextMatcher.swift
 │   ├── FilenameGenerator.swift
+│   ├── BrandingSuppressor.swift
+│   ├── WindowMetadataProvider.swift
 │   ├── ScreenshotOrganizer.swift
 │   └── PermissionManager.swift
 ├── Models/
 │   └── AppContext.swift
 ├── UI/
 │   └── MenuBarView.swift
+Tests/
+└── ScreenshotNamingBenchmark/
+    ├── BenchmarkCases.swift
+    ├── BenchmarkCLI.swift
+    ├── BASELINE.md
+    ├── PHASE2.md
+    ├── PHASE3.md
+    ├── run_benchmark.sh
+    └── ScreenshotNamingBenchmarkTests.swift
 ```
 
 ---

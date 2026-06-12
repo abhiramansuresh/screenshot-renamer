@@ -41,7 +41,7 @@ final class ScreenshotWatcher {
         guard !isRunning else { return }
         isRunning = true
         ScreenshotDebugLogger.log("watcher_start", fields: [
-            "context_schema": "app_window_tab_domain_v2"
+            "context_schema": "app_window_document_tab_domain_v3"
         ])
         rebuildWatchers(markExistingScreenshots: true)
         startLocationRefreshTimer()
@@ -309,15 +309,19 @@ final class ScreenshotWatcher {
         ScreenshotDebugLogger.log("process_resolved", fields: [
             "file": fileURL.lastPathComponent,
             "capture": captureTime.debugDescription,
-            "context_schema": "app_window_tab_domain_v2",
+            "context_schema": "app_window_document_tab_domain_v3",
             "context_app": context.appName,
             "context_title": context.windowTitle ?? "",
+            "context_document": context.documentName ?? "",
             "context_tab": context.tabName ?? "",
             "context_domain": context.browserDomain ?? "",
             "context_timestamp": Self.debugDateFormatter.string(from: context.timestamp),
             "destination": destinationURL.lastPathComponent,
             "destination_directory": processingPlan.destinationDirectoryURL.lastPathComponent,
-            "ocr_token_count": "\(processingPlan.ocrResult?.tokens.count ?? 0)"
+            "ocr_token_count": "\(processingPlan.ocrResult?.tokens.count ?? 0)",
+            "window_metadata_app": processingPlan.windowMetadata?.appName ?? "",
+            "window_metadata_title": processingPlan.windowMetadata?.windowTitle ?? "",
+            "window_metadata_document": processingPlan.windowMetadata?.documentName ?? ""
         ])
 
         guard destinationURL.standardizedFileURL != fileURL.standardizedFileURL else {

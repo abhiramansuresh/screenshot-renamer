@@ -71,6 +71,7 @@ final class ContextTracker {
             timestamp: timestamp,
             appName: appName?.isEmpty == false ? appName! : "Unknown",
             windowTitle: details?.windowTitle,
+            documentName: details?.documentName,
             tabName: details?.tabName,
             browserDomain: details?.browserDomain
         )
@@ -131,12 +132,19 @@ final class ContextTracker {
     private func windowContextDetails(for processIdentifier: pid_t, appName: String?) -> WindowContextDetails {
         let appElement = AXUIElementCreateApplication(processIdentifier)
         guard let windowElement = focusedWindow(for: appElement) else {
-            return WindowContextDetails(windowFound: false, windowTitle: nil, tabName: nil, browserDomain: nil)
+            return WindowContextDetails(
+                windowFound: false,
+                windowTitle: nil,
+                documentName: nil,
+                tabName: nil,
+                browserDomain: nil
+            )
         }
 
         return WindowContextDetails(
             windowFound: true,
             windowTitle: title(for: windowElement),
+            documentName: documentName(for: windowElement),
             tabName: selectedTabTitle(in: windowElement),
             browserDomain: appName.map { isBrowser($0) } == true
                 ? browserDomain(in: windowElement)
@@ -177,15 +185,13 @@ final class ContextTracker {
     }
 
     private func title(for windowElement: AXUIElement) -> String? {
-        for attribute in [kAXTitleAttribute as CFString, "AXDocument" as CFString] {
-            guard let title = string(for: attribute, of: windowElement), !title.isEmpty else {
-                continue
-            }
+        string(for: kAXTitleAttribute as CFString, of: windowElement)
+    }
 
-            return title
-        }
-
-        return nil
+    private func documentName(for windowElement: AXUIElement) -> String? {
+        WindowMetadataProvider.documentName(
+            from: string(for: "AXDocument" as CFString, of: windowElement)
+        )
     }
 
     private func selectedTabTitle(in rootElement: AXUIElement) -> String? {
@@ -511,6 +517,7 @@ final class ContextTracker {
         let signature = ContextSignature(
             appName: context.appName,
             windowTitle: context.windowTitle,
+            documentName: context.documentName,
             tabName: context.tabName,
             browserDomain: context.browserDomain
         )
@@ -522,6 +529,7 @@ final class ContextTracker {
             "app": context.appName,
             "ax_trusted": "\(AXIsProcessTrusted())",
             "browser_domain": context.browserDomain ?? "",
+            "document_name": context.documentName ?? "",
             "is_browser": "\(isBrowser)",
             "pid": processIdentifier.map(String.init) ?? "",
             "tab_name": context.tabName ?? "",
@@ -534,6 +542,7 @@ final class ContextTracker {
 private struct WindowContextDetails {
     let windowFound: Bool
     let windowTitle: String?
+    let documentName: String?
     let tabName: String?
     let browserDomain: String?
 }
@@ -541,6 +550,7 @@ private struct WindowContextDetails {
 private struct ContextSignature: Equatable {
     let appName: String
     let windowTitle: String?
+    let documentName: String?
     let tabName: String?
     let browserDomain: String?
 }

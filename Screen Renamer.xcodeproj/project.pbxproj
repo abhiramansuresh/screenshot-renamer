@@ -28,6 +28,12 @@
 		B00000000000000000000022 /* TextScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000022 /* TextScorer.swift */; };
 		B00000000000000000000023 /* ScreenshotProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000023 /* ScreenshotProcessor.swift */; };
 		B00000000000000000000024 /* OCRNamingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* OCRNamingTests.swift */; };
+		B00000000000000000000025 /* ScreenshotNamingBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* ScreenshotNamingBenchmarkTests.swift */; };
+		B00000000000000000000026 /* BenchmarkCases.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000027 /* BenchmarkCases.swift */; };
+		B00000000000000000000027 /* WindowMetadataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000028 /* WindowMetadataProvider.swift */; };
+		B00000000000000000000028 /* WindowMetadataProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000029 /* WindowMetadataProviderTests.swift */; };
+		B00000000000000000000029 /* BrandingSuppressor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000030 /* BrandingSuppressor.swift */; };
+		B00000000000000000000030 /* BrandingSuppressorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000031 /* BrandingSuppressorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +72,12 @@
 		A00000000000000000000023 /* ScreenshotProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotProcessor.swift; sourceTree = "<group>"; };
 		A00000000000000000000024 /* Screen RenamerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Screen RenamerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000025 /* OCRNamingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRNamingTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000026 /* ScreenshotNamingBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Tests/ScreenshotNamingBenchmark/ScreenshotNamingBenchmarkTests.swift"; sourceTree = "<group>"; };
+		A00000000000000000000027 /* BenchmarkCases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../Tests/ScreenshotNamingBenchmark/BenchmarkCases.swift"; sourceTree = "<group>"; };
+		A00000000000000000000028 /* WindowMetadataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowMetadataProvider.swift; sourceTree = "<group>"; };
+		A00000000000000000000029 /* WindowMetadataProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowMetadataProviderTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000030 /* BrandingSuppressor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandingSuppressor.swift; sourceTree = "<group>"; };
+		A00000000000000000000031 /* BrandingSuppressorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandingSuppressorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -151,8 +163,10 @@
 				A00000000000000000000018 /* ScreenshotOrganizer.swift */,
 				A00000000000000000000020 /* OCRProcessor.swift */,
 				A00000000000000000000021 /* NoiseFilter.swift */,
+				A00000000000000000000030 /* BrandingSuppressor.swift */,
 				A00000000000000000000022 /* TextScorer.swift */,
 				A00000000000000000000023 /* ScreenshotProcessor.swift */,
+				A00000000000000000000028 /* WindowMetadataProvider.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -177,6 +191,10 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000025 /* OCRNamingTests.swift */,
+				A00000000000000000000029 /* WindowMetadataProviderTests.swift */,
+				A00000000000000000000031 /* BrandingSuppressorTests.swift */,
+				A00000000000000000000027 /* BenchmarkCases.swift */,
+				A00000000000000000000026 /* ScreenshotNamingBenchmarkTests.swift */,
 			);
 			path = "Screen RenamerTests";
 			sourceTree = "<group>";
@@ -297,8 +315,10 @@
 				B00000000000000000000019 /* OCRToken.swift in Sources */,
 				B00000000000000000000020 /* OCRProcessor.swift in Sources */,
 				B00000000000000000000021 /* NoiseFilter.swift in Sources */,
+				B00000000000000000000029 /* BrandingSuppressor.swift in Sources */,
 				B00000000000000000000022 /* TextScorer.swift in Sources */,
 				B00000000000000000000023 /* ScreenshotProcessor.swift in Sources */,
+				B00000000000000000000027 /* WindowMetadataProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -307,6 +327,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				B00000000000000000000024 /* OCRNamingTests.swift in Sources */,
+				B00000000000000000000028 /* WindowMetadataProviderTests.swift in Sources */,
+				B00000000000000000000030 /* BrandingSuppressorTests.swift in Sources */,
+				B00000000000000000000026 /* BenchmarkCases.swift in Sources */,
+				B00000000000000000000025 /* ScreenshotNamingBenchmarkTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

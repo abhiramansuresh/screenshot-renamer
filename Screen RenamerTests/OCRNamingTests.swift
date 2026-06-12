@@ -23,6 +23,102 @@ final class OCRNamingTests: XCTestCase {
         XCTAssertEqual(destination, "ConflictResolution_TestDriveCrawl_Rule3_GitHub.png")
     }
 
+    func testDocumentFilenameOCRCandidateWinsBeforeGenericPhrase() {
+        let destination = generatedName(
+            context: AppContext(
+                timestamp: Date(timeIntervalSince1970: 0),
+                appName: "Google Chrome",
+                windowTitle: "GitHub",
+                browserDomain: "github.com"
+            ),
+            tokens: [
+                token("Manual Curriculum Pipeline Inspector", x: 0.30, y: 0.50, width: 0.42, height: 0.08),
+                token("ProjectNotes.md", x: 0.72, y: 0.88, width: 0.20, height: 0.04)
+            ]
+        )
+
+        XCTAssertEqual(destination, "ProjectNotes_Manual_Curriculum_Pipeline_Inspector_GitHub.png")
+    }
+
+    func testPrivacyRestrictedAppsIgnoreOCRMessageBody() {
+        let destination = generatedName(
+            context: AppContext(
+                timestamp: Date(timeIntervalSince1970: 0),
+                appName: "Slack",
+                windowTitle: "Product Design"
+            ),
+            tokens: [
+                token("Quarterly launch plan is blocked", x: 0.28, y: 0.50, width: 0.44, height: 0.08),
+                token("PrivateNotes.md", x: 0.32, y: 0.60, width: 0.24, height: 0.04)
+            ]
+        )
+
+        XCTAssertEqual(destination, "Slack_Product_Design.png")
+    }
+
+    func testLongWindowMetadataTitleWinsBeforeOCR() {
+        let destination = generatedName(
+            context: AppContext(
+                timestamp: Date(timeIntervalSince1970: 0),
+                appName: "Google Chrome",
+                windowTitle: "GitHub",
+                browserDomain: "github.com"
+            ),
+            tokens: [
+                token("ConflictResolution_TestDriveCrawl.md", x: 0.22, y: 0.52, width: 0.56, height: 0.09)
+            ],
+            windowMetadata: WindowMetadata(
+                appName: "Google Chrome",
+                windowTitle: "Manual Curriculum Pipeline Inspector",
+                documentName: nil
+            )
+        )
+
+        XCTAssertEqual(destination, "ManualCurriculumPipelineInspector.png")
+    }
+
+    func testWindowMetadataDocumentNameWinsBeforeOCRWhenTitleIsShort() {
+        let destination = generatedName(
+            context: AppContext(
+                timestamp: Date(timeIntervalSince1970: 0),
+                appName: "Finder",
+                windowTitle: "Debug"
+            ),
+            tokens: [
+                token("Project Assets", x: 0.34, y: 0.48, width: 0.32, height: 0.08)
+            ],
+            windowMetadata: WindowMetadata(
+                appName: "Finder",
+                windowTitle: "Debug",
+                documentName: "ScreenRenamer_DebugBuild"
+            )
+        )
+
+        XCTAssertEqual(destination, "ScreenRenamer_DebugBuild.png")
+    }
+
+    func testCaptureContextDocumentNameCanDriveMetadataFallback() {
+        let context = AppContext(
+            timestamp: Date(timeIntervalSince1970: 0),
+            appName: "Finder",
+            windowTitle: "Debug",
+            documentName: "ScreenRenamer_DebugBuild"
+        )
+        let destination = generatedName(
+            context: context,
+            tokens: [
+                token("Project Assets", x: 0.34, y: 0.48, width: 0.32, height: 0.08)
+            ],
+            windowMetadata: WindowMetadata(
+                appName: context.appName,
+                windowTitle: context.windowTitle,
+                documentName: context.documentName
+            )
+        )
+
+        XCTAssertEqual(destination, "ScreenRenamer_DebugBuild.png")
+    }
+
     func testNoisyBrowserChromeDoesNotDriveFilename() {
         let destination = generatedName(
             context: AppContext(
@@ -166,7 +262,11 @@ final class OCRNamingTests: XCTestCase {
         XCTAssertEqual(destination, "PDA_Onboarding_Figma.png")
     }
 
-    private func generatedName(context: AppContext, tokens: [OCRToken]) -> String {
+    private func generatedName(
+        context: AppContext,
+        tokens: [OCRToken],
+        windowMetadata: WindowMetadata? = nil
+    ) -> String {
         let originalURL = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
             .appendingPathComponent("Screenshot 2026-06-03 at 14.33.21")
@@ -176,6 +276,7 @@ final class OCRNamingTests: XCTestCase {
             for: originalURL,
             context: context,
             ocrResult: OCRResult(tokens: tokens, imageSize: CGSize(width: 1440, height: 900)),
+            windowMetadata: windowMetadata,
             directoryURL: originalURL.deletingLastPathComponent()
         ).lastPathComponent
     }

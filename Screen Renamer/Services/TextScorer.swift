@@ -10,10 +10,15 @@ struct ScoredOCRPhrase: Equatable {
 
 struct TextScorer {
     private let noiseFilter: NoiseFilter
+    private let brandingSuppressor: BrandingSuppressor
     private let minimumConfidence: Float = 0.45
 
-    init(noiseFilter: NoiseFilter = NoiseFilter()) {
+    init(
+        noiseFilter: NoiseFilter = NoiseFilter(),
+        brandingSuppressor: BrandingSuppressor = BrandingSuppressor()
+    ) {
         self.noiseFilter = noiseFilter
+        self.brandingSuppressor = brandingSuppressor
     }
 
     func scoredPhrases(from tokens: [OCRToken], context: AppContext) -> [ScoredOCRPhrase] {
@@ -64,12 +69,23 @@ struct TextScorer {
     ) -> ScoredOCRPhrase {
         var score = 0.0
         let words = noiseFilter.normalizedWords(from: token.text)
+        let suppressedWordCount = words.filter { brandingSuppressor.isSuppressed($0) }.count
+        let contentWordCount = words.count - suppressedWordCount
         let rect = token.boundingRect.standardized
         let center = CGPoint(x: rect.midX, y: rect.midY)
         let centerDistance = hypot(center.x - 0.5, center.y - 0.5)
         let centerWeight = max(0, 1 - centerDistance / 0.72)
         let heightWeight = min(1, max(0, Double(rect.height) / 0.08))
         let widthWeight = min(1, max(0, Double(rect.width) / 0.35))
+
+        if !words.isEmpty, contentWordCount == 0 {
+            return ScoredOCRPhrase(
+                text: token.text,
+                score: 0,
+                confidence: token.confidence,
+                boundingRect: rect
+            )
+        }
 
         score += Double(token.confidence) * 28
         score += centerWeight * 18
@@ -112,6 +128,10 @@ struct TextScorer {
 
         if token.text.count <= 2 {
             score -= 16
+        }
+
+        if suppressedWordCount > 0 {
+            score -= min(18, Double(suppressedWordCount) * 8)
         }
 
         return ScoredOCRPhrase(

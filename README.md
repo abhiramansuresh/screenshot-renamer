@@ -84,11 +84,13 @@ The app is intentionally local-first:
 
 - Uses a short rolling app/window context buffer to avoid app-switch timing mistakes
 
-- Reads browser tab and domain context where macOS Accessibility APIs expose it
+- Reads window titles, document names, browser tab titles, and browser domains where macOS Accessibility APIs expose them
 
 - Uses the macOS Vision framework to extract visible text from screenshots locally
 
 - Scores OCR text deterministically using confidence, bounding boxes, centrality, size, and noise filtering
+
+- Demotes low-value branding/app/navigation words so content phrases can win
 
 - Extracts browser domains when available to avoid noisy or duplicate filename segments
 
@@ -110,23 +112,25 @@ The app is intentionally local-first:
 
   
 
-Screen Renamer has seven main pieces:
+Screen Renamer has eight main pieces:
 
   
 
-1. `ContextTracker` records the frontmost app, focused window title, selected browser tab, and browser domain every 500 ms. It also listens for app activation events so fast app switches are captured promptly.
+1. `ContextTracker` records the frontmost app, focused window title, focused document name, selected browser tab, and browser domain every 500 ms. It also listens for app activation events so fast app switches are captured promptly.
 
 2. `ScreenshotWatcher` watches the screenshot save folder, waits briefly for new files to finish writing, then schedules them for processing.
 
 3. `ContextMatcher` matches the screenshot timestamp to the best available recent context.
 
-4. `OCRProcessor` runs a local `VNRecognizeTextRequest` against the screenshot and returns structured OCR tokens with text, confidence, and bounding boxes.
+4. `ScreenshotProcessor` derives window metadata from the timestamp-matched `AppContext` instead of rereading the current active app during processing. This keeps fast app switches from swapping titles between screenshots.
 
-5. `NoiseFilter` and `TextScorer` discard menu-bar/browser-chrome junk and rank meaningful visible phrases.
+5. `OCRProcessor` runs a local `VNRecognizeTextRequest` against the screenshot and returns structured OCR tokens with text, confidence, and bounding boxes.
 
-6. `FilenameGenerator` prefers high-confidence OCR phrases for names such as `ConflictResolution_Rule3_GitHub.png`, then falls back to context names such as `Chrome_GitHub_Pull_Request.png` when OCR is weak or empty.
+6. `NoiseFilter`, `BrandingSuppressor`, and `TextScorer` discard menu-bar/browser-chrome junk, demote low-value branding words, and rank meaningful visible phrases.
 
-7. `ScreenshotOrganizer` quietly creates folders such as `Chrome_Screenshots` once an app accumulates enough screenshots, moves the earlier files, and keeps future screenshots for that app together.
+7. `FilenameGenerator` prefers useful window metadata, then document names, then high-confidence OCR phrases for names such as `ManualCurriculumPipelineInspector.png` or `ConflictResolution_Rule3_GitHub.png`. It falls back to context names such as `Chrome_GitHub_Pull_Request.png` when stronger signals are weak or empty.
+
+8. `ScreenshotOrganizer` quietly creates folders such as `Chrome_Screenshots` once an app accumulates enough screenshots, moves the earlier files, and keeps future screenshots for that app together.
 
   
 
@@ -134,7 +138,7 @@ The app only renames newly detected screenshots. It does not batch-process older
 
 Automatic app folder organization begins after 5 screenshots from the same app. The first few screenshots stay in the normal save location; when the threshold is reached, Screen Renamer creates the app folder and moves the matching renamed screenshots there in the background.
 
-OCR naming is intentionally conservative. The app selects only a few semantic chunks, favors larger and more central text, penalizes menu bar and browser chrome noise, and keeps output deterministic. If the OCR result is low confidence or not meaningful, the screenshot is renamed with the existing app/window/tab fallback path instead.
+Metadata and OCR naming are intentionally conservative. The app uses long active-window titles and exposed document names before OCR because those signals often describe the screenshot more directly than visible UI text. When it needs OCR, it selects only a few semantic chunks, favors larger and more central text, penalizes menu bar and browser chrome noise, and keeps output deterministic. If metadata and OCR are weak or not meaningful, the screenshot is renamed with the existing app/window/tab fallback path instead.
 
   
 
@@ -326,6 +330,24 @@ To change the system screenshot location yourself, press `Cmd+Shift+5`, choose `
 
 ## Filename Rules
 
+When window metadata has a strong signal, generated names use that before OCR:
+
+```text
+Window title "Manual Curriculum Pipeline Inspector" -> ManualCurriculumPipelineInspector.png
+Window title "Catch-up on same day" -> CatchUpOnSameDay.png
+Document name "ScreenRenamer_DebugBuild" -> ScreenRenamer_DebugBuild.png
+```
+
+Window metadata fires when macOS Accessibility exposes the active window title or document name. Long window titles are treated as primary subject candidates. Document names are used before OCR when the title is short or generic.
+
+When OCR sees a filename-like token with `.md`, `.docx`, `.pdf`, `.pptx`, `.xlsx`, `.swift`, or `.fig`, that filename is promoted to the first OCR candidate:
+
+```text
+Visible text "ConflictResolution_TestDriveCrawl.md" + "Rule 3" on GitHub -> ConflictResolution_TestDriveCrawl_Rule3_GitHub.png
+```
+
+For privacy-sensitive chat apps (`WhatsApp`, `Messages`, `Slack`, `Discord`, and `Teams`), OCR message body text is never used as a filename candidate. Those screenshots fall back to safe app/window context such as a contact, channel, or group title when macOS exposes one.
+
   
 
 When OCR has enough signal, generated names use this general shape:
@@ -345,8 +367,6 @@ Examples:
   
 
 ```text
-
-Visible text "ConflictResolution_TestDriveCrawl.md" + "Rule 3" on GitHub -> ConflictResolution_TestDriveCrawl_Rule3_GitHub.png
 
 Visible text "Year 8 Science Timetable" in Google Sheets -> Year8_Science_Timetable_GoogleSheets.png
 
@@ -380,9 +400,13 @@ The generator:
 
   
 
-- Selects only a few high-scoring OCR chunks
+- Promotes filename-looking OCR tokens above generic OCR phrases
 
 - Penalizes menu bar text, browser chrome, timestamps, repeated fragments, and tiny UI labels
+
+- Suppresses branding/app/navigation words such as `BrainMo`, `Chrome`, `Figma`, `Finder`, `Dashboard`, `Settings`, and `Overview` as primary OCR candidates
+
+- Blocks OCR text naming entirely for privacy-sensitive chat apps
 
 - Normalizes app names like `Google Chrome` to `Chrome`
 
@@ -397,6 +421,50 @@ The generator:
 - Preserves common acronyms like `API`, `JSON`, `UI`, and `PDF`
 
 - Limits generated base filenames to 80 characters
+
+## Screenshot Naming Benchmark
+
+The deterministic naming benchmark lives in:
+
+```text
+Tests/ScreenshotNamingBenchmark/
+```
+
+It includes the original Phase 1 cases plus regression coverage for OCR document filenames and fast app-switch context matching:
+
+```text
+Chrome_BrainMo -> ManualCurriculumPipelineInspector
+Chrome_GitHub_Document -> ConflictResolution_TestDriveCrawl_Rule3_GitHub
+Figma_BrainMo -> CatchUpOnSameDay
+Finder_Debug -> ScreenRenamer_DebugBuild
+Figma_BrainMo_UI_Kit -> TypographySystem
+VLC_In_The_Grey -> InTheGrey20261080pWebripX26510bitAAC51YTSBZMp4
+```
+
+The benchmark has a standalone runner that executes the same naming logic directly from source, without relying on Xcode's hosted XCTest runner:
+
+```sh
+Tests/ScreenshotNamingBenchmark/run_benchmark.sh
+```
+
+It prints a pass/fail report and exits successfully by default, even when current names miss the future target names. Use strict mode when you want misses to fail the command:
+
+```sh
+Tests/ScreenshotNamingBenchmark/run_benchmark.sh --strict
+```
+
+The benchmark is also wired into the `Screen RenamerTests` target as `ScreenshotNamingBenchmarkTests`. That path prints the same pass/fail report to the test console without failing the suite just because the current naming logic misses the future target names. That keeps baseline measurement separate from regression enforcement.
+
+Run it with the normal test command after approving a local build/test run:
+
+```sh
+xcodebuild \
+-project "Screen Renamer.xcodeproj" \
+-scheme "Screen Renamer" \
+-destination "platform=macOS" \
+-derivedDataPath .derivedData \
+test
+```
 
   
 
@@ -500,6 +568,8 @@ ScreenshotWatcher.swift
 
 TextScorer.swift
 
+WindowMetadataProvider.swift
+
 UI/
 
 MenuBarView.swift
@@ -507,6 +577,24 @@ MenuBarView.swift
 Screen RenamerTests/
 
 OCRNamingTests.swift
+
+Tests/
+
+ScreenshotNamingBenchmark/
+
+BASELINE.md
+
+PHASE2.md
+
+PHASE3.md
+
+BenchmarkCases.swift
+
+BenchmarkCLI.swift
+
+run_benchmark.sh
+
+ScreenshotNamingBenchmarkTests.swift
 
 ```
 

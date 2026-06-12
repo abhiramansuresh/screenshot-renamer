@@ -4,6 +4,7 @@ struct ScreenshotProcessingPlan {
     let destinationDirectoryURL: URL
     let destinationURL: URL
     let ocrResult: OCRResult?
+    let windowMetadata: WindowMetadata?
 }
 
 struct ScreenshotProcessor {
@@ -23,6 +24,11 @@ struct ScreenshotProcessor {
 
     func processingPlan(for screenshotURL: URL, context: AppContext) async -> ScreenshotProcessingPlan {
         let startedAt = Date()
+        let windowMetadata = WindowMetadata(
+            appName: context.appName,
+            windowTitle: context.windowTitle,
+            documentName: context.documentName
+        )
         let ocrResult = await recognizeTextIfPossible(in: screenshotURL, startedAt: startedAt)
         let destinationDirectoryURL = screenshotOrganizer.destinationDirectoryURL(
             for: screenshotURL,
@@ -32,13 +38,15 @@ struct ScreenshotProcessor {
             for: screenshotURL,
             context: context,
             ocrResult: ocrResult,
+            windowMetadata: windowMetadata,
             directoryURL: destinationDirectoryURL
         )
 
         return ScreenshotProcessingPlan(
             destinationDirectoryURL: destinationDirectoryURL,
             destinationURL: destinationURL,
-            ocrResult: ocrResult
+            ocrResult: ocrResult,
+            windowMetadata: windowMetadata
         )
     }
 
