@@ -336,9 +336,10 @@ When window metadata has a strong signal, generated names use that before OCR:
 Window title "Manual Curriculum Pipeline Inspector" -> ManualCurriculumPipelineInspector.png
 Window title "Catch-up on same day" -> CatchUpOnSameDay.png
 Document name "ScreenRenamer_DebugBuild" -> ScreenRenamer_DebugBuild.png
+Repeated project title "Screen Renamer — Screen Renamer.xcodeproj" -> ScreenRenamer.png
 ```
 
-Window metadata fires when macOS Accessibility exposes the active window title or document name. Long window titles are treated as primary subject candidates. Document names are used before OCR when the title is short or generic.
+Window metadata fires when macOS Accessibility exposes the active window title or document name. Long window titles are treated as primary subject candidates. Repeated metadata phrases are collapsed, and known project/document extensions such as `.xcodeproj` are removed before naming. Document names are used before OCR when the title is short or generic.
 
 When OCR sees a filename-like token with `.md`, `.docx`, `.pdf`, `.pptx`, `.xlsx`, `.swift`, or `.fig`, that filename is promoted to the first OCR candidate:
 
@@ -416,11 +417,15 @@ The generator:
 
 - Removes browser domains and common app suffix noise
 
+- Removes known document/project extensions and collapses repeated metadata phrases
+
 - Shortens long titles and search queries
 
 - Preserves common acronyms like `API`, `JSON`, `UI`, and `PDF`
 
 - Limits generated base filenames to 80 characters
+
+The debug log includes an `ocr_candidates` event for non-chat apps with the top scored OCR phrases, scores, and confidence values. Privacy-sensitive chat apps emit `ocr_candidates_redacted` instead.
 
 ## Screenshot Naming Benchmark
 
@@ -437,6 +442,7 @@ Chrome_BrainMo -> ManualCurriculumPipelineInspector
 Chrome_GitHub_Document -> ConflictResolution_TestDriveCrawl_Rule3_GitHub
 Figma_BrainMo -> CatchUpOnSameDay
 Finder_Debug -> ScreenRenamer_DebugBuild
+Xcode_Screen_Renamer_Project -> ScreenRenamer
 Figma_BrainMo_UI_Kit -> TypographySystem
 VLC_In_The_Grey -> InTheGrey20261080pWebripX26510bitAAC51YTSBZMp4
 ```

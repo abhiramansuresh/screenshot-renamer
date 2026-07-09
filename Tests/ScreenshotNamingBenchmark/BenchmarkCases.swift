@@ -47,7 +47,7 @@ enum ScreenshotNamingBenchmark {
     private static let fixtures: [BenchmarkFixture] = [
         BenchmarkFixture(
             screenshotPath: "Tests/ScreenshotNamingBenchmark/Chrome_BrainMo.png",
-            expectedName: "ManualCurriculumPipelineInspector",
+            expectedName: "Chrome_ManualCurriculumPipelineInspector",
             context: AppContext(
                 timestamp: Date(timeIntervalSince1970: 0),
                 appName: "Google Chrome",
@@ -59,7 +59,7 @@ enum ScreenshotNamingBenchmark {
         ),
         BenchmarkFixture(
             screenshotPath: "Tests/ScreenshotNamingBenchmark/Chrome_GitHub_Document.png",
-            expectedName: "ConflictResolution_TestDriveCrawl_Rule3_GitHub",
+            expectedName: "Chrome_ConflictResolution_TestDriveCrawl",
             context: AppContext(
                 timestamp: Date(timeIntervalSince1970: 0),
                 appName: "Google Chrome",
@@ -81,7 +81,7 @@ enum ScreenshotNamingBenchmark {
         ),
         BenchmarkFixture(
             screenshotPath: "Tests/ScreenshotNamingBenchmark/Figma_BrainMo.png",
-            expectedName: "CatchUpOnSameDay",
+            expectedName: "Figma_CatchUpOnSameDay",
             context: AppContext(
                 timestamp: Date(timeIntervalSince1970: 0),
                 appName: "Figma",
@@ -91,7 +91,7 @@ enum ScreenshotNamingBenchmark {
         ),
         BenchmarkFixture(
             screenshotPath: "Tests/ScreenshotNamingBenchmark/Finder_Debug.png",
-            expectedName: "ScreenRenamer_DebugBuild",
+            expectedName: "Finder_ScreenRenamer_DebugBuild",
             context: AppContext(
                 timestamp: Date(timeIntervalSince1970: 0),
                 appName: "Finder",
@@ -101,8 +101,19 @@ enum ScreenshotNamingBenchmark {
             tokens: []
         ),
         BenchmarkFixture(
+            screenshotPath: "Tests/ScreenshotNamingBenchmark/Xcode_Screen_Renamer_Project.png",
+            expectedName: "Xcode_ScreenRenamer",
+            context: AppContext(
+                timestamp: Date(timeIntervalSince1970: 0),
+                appName: "Xcode",
+                windowTitle: "Screen Renamer — Screen Renamer.xcodeproj",
+                documentName: "Screen Renamer.xcodeproj"
+            ),
+            tokens: []
+        ),
+        BenchmarkFixture(
             screenshotPath: "Tests/ScreenshotNamingBenchmark/Figma_BrainMo_UI_Kit.png",
-            expectedName: "TypographySystem",
+            expectedName: "Figma_TypographySystem",
             context: AppContext(
                 timestamp: Date(timeIntervalSince1970: 0),
                 appName: "Figma",
@@ -113,7 +124,7 @@ enum ScreenshotNamingBenchmark {
         ),
         BenchmarkFixture(
             screenshotPath: "Tests/ScreenshotNamingBenchmark/VLC_In_The_Grey.png",
-            expectedName: "InTheGrey20261080pWebripX26510bitAAC51YTSBZMp4",
+            expectedName: "VLC_InTheGrey20261080pWebripX26510bitAAC51YTSBZMp4",
             context: AppContext(
                 timestamp: Date(timeIntervalSince1970: 0),
                 appName: "VLC",

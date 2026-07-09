@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SwiftUI
 
 @MainActor
 final class AppController: ObservableObject {
@@ -27,6 +28,7 @@ final class AppController: ObservableObject {
     @Published private(set) var loginItemStatus = "Checking..."
     @Published private var menuClock = Date()
 
+    private var settingsPanel: NSPanel?
     private var didStart = false
     private let contextTracker = ContextTracker()
     private let permissionManager = PermissionManager.shared
@@ -168,6 +170,34 @@ final class AppController: ObservableObject {
 
         refreshLaunchAtStartupStatus()
         continueStartupPermissionSequence()
+    }
+
+    func openSettings() {
+        if let panel = settingsPanel, panel.isVisible {
+            panel.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let hosting = NSHostingView(rootView: SettingsView())
+        hosting.sizingOptions = .preferredContentSize
+
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 440, height: 100),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = "Rename Format"
+        panel.contentView = hosting
+        panel.isReleasedWhenClosed = false
+        panel.hidesOnDeactivate = false
+        panel.minSize = NSSize(width: 440, height: 400)
+        panel.center()
+
+        settingsPanel = panel
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     func openDebugLog() {

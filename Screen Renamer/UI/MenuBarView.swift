@@ -10,6 +10,10 @@ struct MenuBarView: View {
 
         Toggle(launchAtStartupTitle, isOn: launchAtStartupBinding)
 
+        Button("Rename Format…") {
+            controller.openSettings()
+        }
+
         Divider()
 
         debugMenuItems
@@ -43,6 +47,10 @@ struct MenuBarView: View {
             .foregroundStyle(.secondary)
 
         Text(controller.renameCountSummary)
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+
+        Text("Watching: \(controller.watchedLocationSummary)")
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
 
@@ -92,7 +100,6 @@ struct MenuBarView: View {
     private var debugMenuItems: some View {
         #if DEBUG
         Text(controller.lastStatus)
-        Text("Watching: \(controller.watchedLocationSummary)")
         Text(controller.loginItemStatus)
         Text(controller.accessibilityTrusted ? "Accessibility: granted" : "Accessibility: missing or stale")
         Text("Build: Debug")
@@ -113,6 +120,12 @@ struct MenuBarView: View {
 
         Button("Clear Debug Log") {
             controller.clearDebugLog()
+        }
+        #else
+        if !controller.accessibilityTrusted {
+            Button("Enable Accessibility Access") {
+                controller.openAccessibilitySettings()
+            }
         }
         #endif
     }

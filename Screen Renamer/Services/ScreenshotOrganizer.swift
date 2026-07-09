@@ -163,9 +163,9 @@ struct ScreenshotOrganizer {
     private func migrationDestinationURL(for fileURL: URL, in directoryURL: URL) -> URL {
         let baseName = fileURL.deletingPathExtension().lastPathComponent
         let fileExtension = fileURL.pathExtension
-        var suffix = 1
+        let maxSuffix = 9_999
 
-        while true {
+        for suffix in 1...maxSuffix {
             let suffixText = suffix == 1 ? "" : "_\(suffix)"
             let candidateBaseName = baseName + suffixText
             let candidateURL: URL
@@ -180,9 +180,14 @@ struct ScreenshotOrganizer {
                 !fileManager.fileExists(atPath: candidateURL.path) {
                 return candidateURL
             }
-
-            suffix += 1
         }
+
+        let uniqueSuffix = String(Int(Date().timeIntervalSince1970) % 100_000)
+        let candidateBaseName = baseName + "_\(uniqueSuffix)"
+        if fileExtension.isEmpty {
+            return directoryURL.appendingPathComponent(candidateBaseName)
+        }
+        return directoryURL.appendingPathComponent(candidateBaseName).appendingPathExtension(fileExtension)
     }
 }
 

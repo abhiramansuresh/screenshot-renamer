@@ -165,7 +165,9 @@ final class ContextTracker {
             &focusedWindowValue
         )
 
-        guard focusedWindowResult == .success, let focusedWindowValue else {
+        guard focusedWindowResult == .success,
+              let focusedWindowValue,
+              CFGetTypeID(focusedWindowValue) == AXUIElementGetTypeID() else {
             return mainWindow(for: appElement)
         }
 
@@ -180,7 +182,12 @@ final class ContextTracker {
             &mainWindowValue
         )
 
-        guard result == .success, let mainWindowValue else { return nil }
+        guard result == .success,
+              let mainWindowValue,
+              CFGetTypeID(mainWindowValue) == AXUIElementGetTypeID() else {
+            return nil
+        }
+
         return (mainWindowValue as! AXUIElement)
     }
 

@@ -603,7 +603,18 @@ Examples:
 ManualCurriculumPipelineInspector.png
 CatchUpOnSameDay.png
 ScreenRenamer_DebugBuild.png
+ScreenRenamer.png
 ```
+
+## Metadata Cleanup
+
+Window and document metadata is cleaned before it can become a filename:
+
+- Known document/project extensions such as `.xcodeproj` are removed.
+- Repeated phrase sequences are collapsed, so
+  `Screen Renamer — Screen Renamer.xcodeproj` becomes `ScreenRenamer`.
+- The cleaned window title must still meet the meaningful word threshold before
+  it can beat document metadata and OCR.
 
 When OCR has enough signal:
 
@@ -636,6 +647,15 @@ The full filename decision order is:
 ```
 
 For privacy-sensitive chat apps, steps 3 and 4 are skipped entirely.
+
+## OCR Candidate Debug Logging
+
+For non-chat apps, screenshot processing writes an `ocr_candidates` debug event
+with the top scored OCR phrases, scores, and confidence values. This makes it
+possible to diagnose why a visible phrase did or did not win.
+
+For privacy-sensitive chat apps, the app writes `ocr_candidates_redacted`
+instead and does not log OCR candidate text.
 
 When OCR is weak or empty, fall back to the context-based format:
 
@@ -714,6 +734,7 @@ Chrome_BrainMo -> ManualCurriculumPipelineInspector
 Chrome_GitHub_Document -> ConflictResolution_TestDriveCrawl_Rule3_GitHub
 Figma_BrainMo -> CatchUpOnSameDay
 Finder_Debug -> ScreenRenamer_DebugBuild
+Xcode_Screen_Renamer_Project -> ScreenRenamer
 Figma_BrainMo_UI_Kit -> TypographySystem
 VLC_In_The_Grey -> InTheGrey20261080pWebripX26510bitAAC51YTSBZMp4
 ```

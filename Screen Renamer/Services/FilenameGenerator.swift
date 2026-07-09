@@ -6,14 +6,12 @@ struct FilenameGenerator {
     private let maxBaseNameLength = 80
     private let maxTitleWords = 5
     private let maxSearchQueryWords = 4
-    private let maxOCRChunks = 3
     private let minimumWindowMetadataTitleWords = 4
-    private let minimumOCRScore = 38.0
     private let minimumOCRConfidence: Float = 0.62
     private let documentFilenameExtensions = "md|docx|pdf|pptx|xlsx|swift|fig"
+    private let filenameCleanupExtensions = "xcodeproj|swift|md|txt|pdf|png|jpe?g|heic|fig|json|csv|xlsx?|docx?|pptx?|html?|css|js|ts|tsx|jsx"
     private let illegalCharacters = CharacterSet(charactersIn: "/\\:?*\"<>|")
     private let trimCharacters = CharacterSet(charactersIn: "._- ")
-    private let textScorer = TextScorer()
     private let searchEngineNames: Set<String> = ["google", "bing", "duckduckgo"]
     private let knownAcronyms: Set<String> = [
         "AI", "API", "CPU", "CSS", "DNS", "GPU", "HTML", "HTTP", "IP", "JSON",
@@ -51,14 +49,19 @@ struct FilenameGenerator {
         "aboutblank",
         "about_blank"
     ]
-    private let privacyRestrictedOCRApps: Set<String> = [
-        "discord",
-        "messages",
-        "microsoft teams",
-        "slack",
-        "teams",
-        "whatsapp"
-    ]
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "HH-mm"
+        return f
+    }()
 
     func destinationURL(for originalURL: URL, context: AppContext, directoryURL: URL? = nil) -> URL {
         destinationURL(for: originalURL, context: context, ocrResult: nil, directoryURL: directoryURL)
@@ -69,13 +72,17 @@ struct FilenameGenerator {
         context: AppContext,
         ocrResult: OCRResult?,
         windowMetadata: WindowMetadata? = nil,
+        template: NamingTemplate = .default,
         directoryURL: URL? = nil
     ) -> URL {
         let directoryURL = directoryURL ?? originalURL.deletingLastPathComponent()
         let fileExtension = originalURL.pathExtension.isEmpty ? "png" : originalURL.pathExtension
-        let safeBaseName = windowMetadataBaseName(from: windowMetadata)
-            ?? ocrBaseName(from: ocrResult, context: context)
-            ?? contextBaseName(for: context)
+
+        let values = template.fields.compactMap { field in
+            fieldValue(for: field, context: context, ocrResult: ocrResult, windowMetadata: windowMetadata)
+        }
+        let rawBaseName = template.prefix + values.joined(separator: template.separator) + template.suffix
+        let safeBaseName = sanitize(rawBaseName, maxLength: maxBaseNameLength) ?? "Screenshot"
 
         return availableURL(
             in: directoryURL,
@@ -83,6 +90,37 @@ struct FilenameGenerator {
             fileExtension: fileExtension,
             originalURL: originalURL
         )
+    }
+
+    private func fieldValue(
+        for field: NamingField,
+        context: AppContext,
+        ocrResult: OCRResult?,
+        windowMetadata: WindowMetadata?
+    ) -> String? {
+        switch field {
+        case .app:
+            return cleanedAppName(context.appName)
+        case .windowTitle:
+            // Smart hierarchy: long metadata title → document name → OCR doc → context title
+            return windowMetadataBaseName(from: windowMetadata)
+                ?? ocrBaseName(from: ocrResult, context: context)
+                ?? contextTitleOnly(for: context)
+        case .tabName:
+            return cleanedTabName(context.tabName, appName: context.appName)
+        case .domain:
+            return cleanedBrowserDomain(context.browserDomain)
+        case .documentName:
+            let name = windowMetadata?.documentName ?? context.documentName
+            return name.flatMap { formattedMetadataName($0, appName: context.appName) }
+        case .ocrDocument:
+            guard !context.isPrivacyRestrictedOCRApp else { return nil }
+            return ocrResult.flatMap { documentFilenameBaseName(from: $0) }
+        case .date:
+            return Self.dateFormatter.string(from: context.timestamp)
+        case .time:
+            return Self.timeFormatter.string(from: context.timestamp)
+        }
     }
 
     func organizedFolderName(for appName: String) -> String {
@@ -111,16 +149,13 @@ struct FilenameGenerator {
     }
 
     private func metadataWordCount(_ value: String, appName: String) -> Int {
-        titleWords(from: stripAppSuffixNoise(from: value, appName: appName)).count
+        deduplicatedRepeatedWordSequence(
+            titleWords(from: stripKnownFileExtension(from: stripAppSuffixNoise(from: value, appName: appName)))
+        ).count
     }
 
     private func formattedMetadataName(_ value: String, appName: String) -> String? {
-        var cleanedValue = stripAppSuffixNoise(from: value, appName: appName)
-            .replacingOccurrences(
-                of: #"(?i)\.(swift|md|txt|pdf|png|jpe?g|heic|fig|json|csv|xlsx?|docx?|pptx?|html?|css|js|ts|tsx|jsx)\b"#,
-                with: "",
-                options: .regularExpression
-            )
+        var cleanedValue = stripKnownFileExtension(from: stripAppSuffixNoise(from: value, appName: appName))
             .replacingOccurrences(of: #"(?i)\bhttps?://\S+"#, with: " ", options: .regularExpression)
             .replacingOccurrences(of: #"[|:()[\]{}]+"#, with: " ", options: .regularExpression)
             .trimmingCharacters(in: trimCharacters)
@@ -145,13 +180,45 @@ struct FilenameGenerator {
     }
 
     private func formattedMetadataSegment(_ segment: String) -> String? {
-        let words = segment
+        let words = deduplicatedRepeatedWordSequence(
+            segment
             .replacingOccurrences(of: #"[^A-Za-z0-9+#]+"#, with: " ", options: .regularExpression)
             .split(separator: " ")
             .map(String.init)
+        )
 
         guard !words.isEmpty else { return nil }
         return words.map(formattedOCRWord).joined()
+    }
+
+    private func deduplicatedRepeatedWordSequence(_ words: [String]) -> [String] {
+        guard words.count > 1 else { return words }
+
+        let midpoint = words.count / 2
+        if words.count.isMultiple(of: 2) {
+            let firstHalf = Array(words[..<midpoint])
+            let secondHalf = Array(words[midpoint...])
+
+            if comparableWords(firstHalf) == comparableWords(secondHalf) {
+                return firstHalf
+            }
+        }
+
+        return words.reduce(into: [String]()) { deduplicatedWords, word in
+            guard comparableName(deduplicatedWords.last ?? "") != comparableName(word) else { return }
+            deduplicatedWords.append(word)
+        }
+    }
+
+    private func comparableWords(_ words: [String]) -> String {
+        words.map(comparableName).joined(separator: "|")
+    }
+
+    private func contextTitleOnly(for context: AppContext) -> String? {
+        let domainName = cleanedBrowserDomain(context.browserDomain)
+        let tabName = cleanedTabName(context.tabName, appName: context.appName)
+        let fallbackTitle = cleanedWindowTitle(context.windowTitle, appName: context.appName)
+        return distinctPageName(tabName ?? fallbackTitle, domainName: domainName)
     }
 
     private func contextBaseName(for context: AppContext) -> String {
@@ -168,47 +235,13 @@ struct FilenameGenerator {
     private func ocrBaseName(from ocrResult: OCRResult?, context: AppContext) -> String? {
         guard let ocrResult else { return nil }
 
-        // Privacy requirement: do not use message body OCR text as filename candidates in chat apps.
-        guard !isPrivacyRestrictedOCRApp(context.appName) else { return nil }
+        // OCR is only used to detect visible document filenames on screen (e.g. a .md or .pdf
+        // shown in a title bar or tab). Body text scoring was removed because it produced noisy,
+        // partial-word names (e.g. "laude" from "Claude") that were worse than context-based fallbacks.
+        // Privacy: skip OCR entirely for chat apps to avoid leaking message content or attachment names.
+        guard !context.isPrivacyRestrictedOCRApp else { return nil }
 
-        let documentFilenameComponent = documentFilenameBaseName(from: ocrResult)
-        let scoredPhrases = textScorer.scoredPhrases(from: ocrResult.tokens, context: context)
-        if documentFilenameComponent == nil {
-            guard let topPhrase = scoredPhrases.first,
-                  topPhrase.score >= minimumOCRScore,
-                  topPhrase.confidence >= minimumOCRConfidence else {
-                return nil
-            }
-        }
-
-        var components: [String] = []
-        let appLabel = contextualOCRLabel(for: context, ocrResult: ocrResult)
-        let formattedAppLabel = formattedOCRChunk(appLabel)
-
-        if let documentFilenameComponent {
-            components.append(documentFilenameComponent)
-        }
-
-        for phrase in scoredPhrases {
-            guard components.count < maxOCRChunks,
-                  phrase.score >= 24,
-                  let component = formattedOCRChunk(phrase.text),
-                  !isDuplicate(component, of: formattedAppLabel),
-                  !components.contains(where: { isDuplicate($0, of: component) }) else {
-                continue
-            }
-
-            components.append(component)
-        }
-
-        guard !components.isEmpty else { return nil }
-
-        if let formattedAppLabel,
-           !components.contains(where: { containsDuplicateLabel(formattedAppLabel, in: $0) }) {
-            components.append(formattedAppLabel)
-        }
-
-        return sanitize(components.joined(separator: "_"), maxLength: maxBaseNameLength)
+        return documentFilenameBaseName(from: ocrResult)
     }
 
     private func documentFilenameBaseName(from ocrResult: OCRResult) -> String? {
@@ -247,56 +280,12 @@ struct FilenameGenerator {
         return String(text[range]).trimmingCharacters(in: trimCharacters)
     }
 
-    private func isPrivacyRestrictedOCRApp(_ appName: String) -> Bool {
-        privacyRestrictedOCRApps.contains(appName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
-    }
-
-    private func contextualOCRLabel(for context: AppContext, ocrResult: OCRResult) -> String {
-        let visibleText = (
-            ocrResult.tokens.map(\.text)
-                + [context.windowTitle, context.tabName, context.browserDomain].compactMap { $0 }
-        )
-        .joined(separator: " ")
-        .lowercased()
-
-        if visibleText.contains("google sheets") || visibleText.contains("spreadsheet") {
-            return "GoogleSheets"
-        }
-
-        if visibleText.contains("google docs") {
-            return "GoogleDocs"
-        }
-
-        if visibleText.contains("google slides") {
-            return "GoogleSlides"
-        }
-
-        if visibleText.contains("github") {
-            return "GitHub"
-        }
-
-        if visibleText.contains("figma") {
-            return "Figma"
-        }
-
-        if visibleText.contains("notion") {
-            return "Notion"
-        }
-
-        return cleanedBrowserDomain(context.browserDomain) ?? cleanedAppName(context.appName)
-    }
-
     private func formattedOCRChunk(_ text: String?) -> String? {
         guard var text = text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
             return nil
         }
 
-        text = text
-            .replacingOccurrences(
-                of: #"(?i)\.(swift|md|txt|pdf|png|jpe?g|heic|fig|json|csv|xlsx?|docx?|pptx?|html?|css|js|ts|tsx|jsx)\b"#,
-                with: "",
-                options: .regularExpression
-            )
+        text = stripKnownFileExtension(from: text)
             .replacingOccurrences(of: #"(?i)\bhttps?://\S+"#, with: " ", options: .regularExpression)
             .replacingOccurrences(of: #"[|:()[\]{}]+"#, with: " ", options: .regularExpression)
             .trimmingCharacters(in: trimCharacters)
@@ -310,6 +299,14 @@ struct FilenameGenerator {
 
         guard !underscoreSegments.isEmpty else { return nil }
         return sanitize(underscoreSegments.joined(separator: "_"), maxLength: nil)
+    }
+
+    private func stripKnownFileExtension(from value: String) -> String {
+        value.replacingOccurrences(
+            of: "\\.(" + filenameCleanupExtensions + ")\\b",
+            with: "",
+            options: [.regularExpression, .caseInsensitive]
+        )
     }
 
     private func formattedOCRSegment(_ segment: String) -> String? {
@@ -356,22 +353,6 @@ struct FilenameGenerator {
         return firstCharacter.uppercased() + lowercasedWord.dropFirst()
     }
 
-    private func isDuplicate(_ lhs: String?, of rhs: String?) -> Bool {
-        guard let lhs, let rhs else { return false }
-        return comparableName(lhs) == comparableName(rhs)
-    }
-
-    private func containsDuplicateLabel(_ label: String, in component: String) -> Bool {
-        let comparableLabel = comparableName(label)
-        let comparableComponent = comparableName(component)
-
-        guard comparableLabel.count >= 3 else {
-            return comparableComponent == comparableLabel
-        }
-
-        return comparableComponent == comparableLabel || comparableComponent.contains(comparableLabel)
-    }
-
     private func cleanedAppName(_ appName: String) -> String {
         let normalizedName: String
         switch appName.trimmingCharacters(in: .whitespacesAndNewlines) {
@@ -379,6 +360,8 @@ struct FilenameGenerator {
             normalizedName = "Chrome"
         case "Microsoft Edge":
             normalizedName = "Edge"
+        case "Visual Studio Code":
+            normalizedName = "VSCode"
         default:
             normalizedName = appName
         }
@@ -762,9 +745,9 @@ struct FilenameGenerator {
         originalURL: URL
     ) -> URL {
         let fileManager = FileManager.default
-        var suffix = 1
+        let maxSuffix = 9_999
 
-        while true {
+        for suffix in 1...maxSuffix {
             let suffixText = suffix == 1 ? "" : "_\(suffix)"
             let candidateBaseName = truncatedBaseName(
                 baseName,
@@ -776,8 +759,11 @@ struct FilenameGenerator {
                 !fileManager.fileExists(atPath: candidateURL.path) {
                 return candidateURL
             }
-
-            suffix += 1
         }
+
+        let uniqueSuffix = String(Int(Date().timeIntervalSince1970) % 100_000)
+        return directoryURL
+            .appendingPathComponent(truncatedBaseName(baseName, maxLength: maxBaseNameLength - uniqueSuffix.count - 1) + "_\(uniqueSuffix)")
+            .appendingPathExtension(fileExtension)
     }
 }

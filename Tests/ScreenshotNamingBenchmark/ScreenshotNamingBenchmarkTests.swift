@@ -6,7 +6,7 @@ final class ScreenshotNamingBenchmarkTests: XCTestCase {
 
         print(ScreenshotNamingBenchmark.report(for: cases))
 
-        XCTAssertEqual(cases.count, 4)
+        XCTAssertEqual(cases.count, 7)
         XCTAssertTrue(cases.allSatisfy { !$0.generatedName.isEmpty })
     }
 }

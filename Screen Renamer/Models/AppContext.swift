@@ -1,6 +1,15 @@
 import Foundation
 
 struct AppContext: Equatable {
+    static let privacyRestrictedOCRApps: Set<String> = [
+        "discord",
+        "messages",
+        "microsoft teams",
+        "slack",
+        "teams",
+        "whatsapp"
+    ]
+
     let timestamp: Date
     let appName: String
     let windowTitle: String?
@@ -22,5 +31,11 @@ struct AppContext: Equatable {
         self.documentName = documentName
         self.tabName = tabName
         self.browserDomain = browserDomain
+    }
+
+    var isPrivacyRestrictedOCRApp: Bool {
+        Self.privacyRestrictedOCRApps.contains(
+            appName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        )
     }
 }

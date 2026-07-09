@@ -34,6 +34,8 @@
 		B00000000000000000000028 /* WindowMetadataProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000029 /* WindowMetadataProviderTests.swift */; };
 		B00000000000000000000029 /* BrandingSuppressor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000030 /* BrandingSuppressor.swift */; };
 		B00000000000000000000030 /* BrandingSuppressorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000031 /* BrandingSuppressorTests.swift */; };
+		B00000000000000000000031 /* NamingTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000032 /* NamingTemplate.swift */; };
+		B00000000000000000000032 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000033 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,6 +80,8 @@
 		A00000000000000000000029 /* WindowMetadataProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowMetadataProviderTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000030 /* BrandingSuppressor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandingSuppressor.swift; sourceTree = "<group>"; };
 		A00000000000000000000031 /* BrandingSuppressorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandingSuppressorTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000032 /* NamingTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NamingTemplate.swift; sourceTree = "<group>"; };
+		A00000000000000000000033 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -144,6 +148,7 @@
 			children = (
 				A00000000000000000000003 /* AppContext.swift */,
 				A00000000000000000000019 /* OCRToken.swift */,
+				A00000000000000000000032 /* NamingTemplate.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -175,6 +180,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000012 /* MenuBarView.swift */,
+				A00000000000000000000033 /* SettingsView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -319,6 +325,8 @@
 				B00000000000000000000022 /* TextScorer.swift in Sources */,
 				B00000000000000000000023 /* ScreenshotProcessor.swift in Sources */,
 				B00000000000000000000027 /* WindowMetadataProvider.swift in Sources */,
+				B00000000000000000000031 /* NamingTemplate.swift in Sources */,
+				B00000000000000000000032 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

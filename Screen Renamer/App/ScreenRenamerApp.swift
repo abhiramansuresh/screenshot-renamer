@@ -8,11 +8,6 @@ struct ScreenRenamerApp: App {
     @StateObject private var controller = AppController.shared
     @AppStorage(AppController.menuBarItemVisibleKey) private var isMenuBarItemVisible = true
 
-    init() {
-        AppController.shared.restoreMenuBarItemIfRequestedAtLaunch()
-        AppController.shared.start()
-    }
-
     var body: some Scene {
         MenuBarExtra(isInserted: $isMenuBarItemVisible) {
             MenuBarView()
@@ -59,6 +54,7 @@ private extension NSImage {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         Task { @MainActor in
+            AppController.shared.restoreMenuBarItemIfRequestedAtLaunch()
             AppController.shared.start()
         }
     }

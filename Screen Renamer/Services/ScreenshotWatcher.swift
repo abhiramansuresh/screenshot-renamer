@@ -340,6 +340,8 @@ final class ScreenshotWatcher {
 
         do {
             try fileManager.moveItem(at: fileURL, to: destinationURL)
+            knownScreenshotPaths.remove(originalPath)
+            knownScreenshotPaths.insert(destinationURL.standardizedFileURL.path)
             ScreenshotDebugLogger.log("move_success", fields: [
                 "from": fileURL.lastPathComponent,
                 "to": destinationURL.lastPathComponent,
