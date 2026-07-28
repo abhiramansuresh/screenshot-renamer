@@ -16,6 +16,7 @@ struct AppContext: Equatable {
     let documentName: String?
     let tabName: String?
     let browserDomain: String?
+    let browserPageURL: String?
 
     init(
         timestamp: Date,
@@ -23,7 +24,8 @@ struct AppContext: Equatable {
         windowTitle: String?,
         documentName: String? = nil,
         tabName: String? = nil,
-        browserDomain: String? = nil
+        browserDomain: String? = nil,
+        browserPageURL: String? = nil
     ) {
         self.timestamp = timestamp
         self.appName = appName
@@ -31,6 +33,7 @@ struct AppContext: Equatable {
         self.documentName = documentName
         self.tabName = tabName
         self.browserDomain = browserDomain
+        self.browserPageURL = browserPageURL
     }
 
     var isPrivacyRestrictedOCRApp: Bool {

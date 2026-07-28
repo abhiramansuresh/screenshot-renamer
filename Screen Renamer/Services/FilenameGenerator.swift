@@ -78,8 +78,23 @@ struct FilenameGenerator {
         let directoryURL = directoryURL ?? originalURL.deletingLastPathComponent()
         let fileExtension = originalURL.pathExtension.isEmpty ? "png" : originalURL.pathExtension
 
-        let values = template.fields.compactMap { field in
+        var fieldValues = template.fields.compactMap { field in
             fieldValue(for: field, context: context, ocrResult: ocrResult, windowMetadata: windowMetadata)
+                .map { (field: field, value: $0) }
+        }
+
+        // The browser name is noise once the domain is known: GitHub_TasteSkill beats
+        // Safari_GitHub_TasteSkill. Domains only exist for browsers.
+        if fieldValues.contains(where: { $0.field == .domain }) {
+            fieldValues.removeAll { $0.field == .app }
+        }
+
+        // Drop fields that just repeat another field ("instagram.com" + "Instagram_Messages").
+        var values: [String] = []
+        for candidate in fieldValues.map(\.value) {
+            if values.contains(where: { covers($0, candidate) }) { continue }
+            values.removeAll { covers(candidate, $0) }
+            values.append(candidate)
         }
         let rawBaseName = template.prefix + values.joined(separator: template.separator) + template.suffix
         let safeBaseName = sanitize(rawBaseName, maxLength: maxBaseNameLength) ?? "Screenshot"
@@ -103,11 +118,11 @@ struct FilenameGenerator {
             return cleanedAppName(context.appName)
         case .windowTitle:
             // Smart hierarchy: long metadata title → document name → OCR doc → context title
-            return windowMetadataBaseName(from: windowMetadata)
+            return windowMetadataBaseName(from: windowMetadata, browserDomain: context.browserDomain)
                 ?? ocrBaseName(from: ocrResult, context: context)
                 ?? contextTitleOnly(for: context)
         case .tabName:
-            return cleanedTabName(context.tabName, appName: context.appName)
+            return cleanedContextName(context.tabName, appName: context.appName, browserDomain: context.browserDomain)
         case .domain:
             return cleanedBrowserDomain(context.browserDomain)
         case .documentName:
@@ -131,12 +146,12 @@ struct FilenameGenerator {
         cleanedAppName(appName)
     }
 
-    private func windowMetadataBaseName(from metadata: WindowMetadata?) -> String? {
+    private func windowMetadataBaseName(from metadata: WindowMetadata?, browserDomain: String?) -> String? {
         guard let metadata else { return nil }
 
         if let windowTitle = metadata.windowTitle,
-           metadataWordCount(windowTitle, appName: metadata.appName) >= minimumWindowMetadataTitleWords,
-           let formattedTitle = formattedMetadataName(windowTitle, appName: metadata.appName) {
+           metadataWordCount(windowTitle, appName: metadata.appName, browserDomain: browserDomain) >= minimumWindowMetadataTitleWords,
+           let formattedTitle = formattedMetadataName(windowTitle, appName: metadata.appName, browserDomain: browserDomain) {
             return formattedTitle
         }
 
@@ -148,14 +163,61 @@ struct FilenameGenerator {
         return nil
     }
 
-    private func metadataWordCount(_ value: String, appName: String) -> Int {
+    private func metadataWordCount(_ value: String, appName: String, browserDomain: String? = nil) -> Int {
         deduplicatedRepeatedWordSequence(
-            titleWords(from: stripKnownFileExtension(from: stripAppSuffixNoise(from: value, appName: appName)))
+            titleWords(from: cleanedTitleSubject(value, appName: appName, browserDomain: browserDomain))
         ).count
     }
 
-    private func formattedMetadataName(_ value: String, appName: String) -> String? {
-        var cleanedValue = stripKnownFileExtension(from: stripAppSuffixNoise(from: value, appName: appName))
+    // Titles read "Subject SEP tagline SEP site". Only the subject names the screenshot;
+    // everything after the first separator is branding that bloats filenames.
+    private func subjectSegment(from title: String, skipping skipNames: [String]) -> String {
+        let cleanedTitle = title.replacingOccurrences(
+            of: #"^\s*[\[(]\d+[\])]\s*"#,
+            with: "",
+            options: .regularExpression
+        )
+
+        var segments = [cleanedTitle]
+        for separator in [" — ", " – ", " - ", " | ", " · ", " • ", " :: ", ": "] {
+            segments = segments.flatMap { $0.components(separatedBy: separator) }
+        }
+
+        let candidates = segments
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let skipTokens = skipNames.filter { !$0.isEmpty }.map(comparableTokens)
+
+        let subject = candidates.first { candidate in
+            !isLowQualityTitle(candidate)
+                && !skipTokens.contains { comparableTokens(candidate).isSubset(of: $0) }
+        }
+
+        return subject ?? candidates.first ?? cleanedTitle
+    }
+
+    private func cleanedTitleSubject(_ value: String, appName: String, browserDomain: String?) -> String {
+        subjectSegment(
+            from: stripKnownFileExtension(from: stripAppSuffixNoise(from: value, appName: appName)),
+            skipping: [appName, cleanedAppName(appName), browserDomain ?? ""]
+        )
+    }
+
+    private func comparableTokens(_ value: String) -> Set<String> {
+        Set(
+            value.lowercased()
+                .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+                .map(String.init)
+        )
+    }
+
+    private func covers(_ value: String, _ other: String) -> Bool {
+        comparableName(value).contains(comparableName(other))
+            || comparableTokens(other).isSubset(of: comparableTokens(value))
+    }
+
+    private func formattedMetadataName(_ value: String, appName: String, browserDomain: String? = nil) -> String? {
+        var cleanedValue = cleanedTitleSubject(value, appName: appName, browserDomain: browserDomain)
             .replacingOccurrences(of: #"(?i)\bhttps?://\S+"#, with: " ", options: .regularExpression)
             .replacingOccurrences(of: #"[|:()[\]{}]+"#, with: " ", options: .regularExpression)
             .trimmingCharacters(in: trimCharacters)
@@ -188,7 +250,8 @@ struct FilenameGenerator {
         )
 
         guard !words.isEmpty else { return nil }
-        return words.map(formattedOCRWord).joined()
+        // ponytail: humans name files in a handful of words; anything longer is a tagline
+        return words.prefix(maxTitleWords).map(formattedOCRWord).joined()
     }
 
     private func deduplicatedRepeatedWordSequence(_ words: [String]) -> [String] {
@@ -216,20 +279,32 @@ struct FilenameGenerator {
 
     private func contextTitleOnly(for context: AppContext) -> String? {
         let domainName = cleanedBrowserDomain(context.browserDomain)
-        let tabName = cleanedTabName(context.tabName, appName: context.appName)
-        let fallbackTitle = cleanedWindowTitle(context.windowTitle, appName: context.appName)
+        let tabName = cleanedContextName(context.tabName, appName: context.appName, browserDomain: context.browserDomain)
+        let fallbackTitle = cleanedContextName(context.windowTitle, appName: context.appName, browserDomain: context.browserDomain)
         return distinctPageName(tabName ?? fallbackTitle, domainName: domainName)
+            ?? urlPathSlug(from: context.browserPageURL)
     }
 
-    private func contextBaseName(for context: AppContext) -> String {
-        let appName = cleanedAppName(context.appName)
-        let domainName = cleanedBrowserDomain(context.browserDomain)
-        let tabName = cleanedTabName(context.tabName, appName: context.appName)
-        let fallbackTitle = cleanedWindowTitle(context.windowTitle, appName: context.appName)
-        let pageName = distinctPageName(tabName ?? fallbackTitle, domainName: domainName)
-        let baseName = [appName, pageName].compactMap { $0 }.joined(separator: "_")
+    private func urlPathSlug(from urlString: String?) -> String? {
+        guard let urlString, let components = URLComponents(string: urlString) else { return nil }
 
-        return baseName.isEmpty ? "Screenshot" : truncatedBaseName(baseName, maxLength: maxBaseNameLength)
+        // ponytail: last two readable path segments; per-site slug rules if this proves too blunt
+        let segments = components.path
+            .split(separator: "/")
+            .map(String.init)
+            .filter { segment in
+                segment.count <= 40
+                    && segment.range(
+                        of: #"^[0-9a-f-]{16,}$"#,
+                        options: [.regularExpression, .caseInsensitive]
+                    ) == nil
+            }
+
+        guard !segments.isEmpty else { return nil }
+
+        let slug = formattedTitle(segments.suffix(2).joined(separator: " "), maxWords: maxTitleWords)
+        guard let slug, !isLowQualityTitle(slug) else { return nil }
+        return sanitize(slug, maxLength: maxTitleLength)
     }
 
     private func ocrBaseName(from ocrResult: OCRResult?, context: AppContext) -> String? {
@@ -369,31 +444,31 @@ struct FilenameGenerator {
         return sanitize(normalizedName, maxLength: nil) ?? "Screenshot"
     }
 
-    private func cleanedWindowTitle(_ title: String?, appName: String) -> String? {
-        cleanedContextName(title, appName: appName)
-    }
-
-    private func cleanedTabName(_ tabName: String?, appName: String) -> String? {
-        cleanedContextName(tabName, appName: appName)
-    }
-
     private func cleanedBrowserDomain(_ domain: String?) -> String? {
         guard let domain = domain?.trimmingCharacters(in: .whitespacesAndNewlines), !domain.isEmpty else {
             return nil
         }
 
-        let displayName = domainDisplayNames[domain.lowercased()] ?? domain
+        let displayName = domainDisplayNames[domain.lowercased()] ?? domainDerivedDisplayName(domain)
         return sanitize(displayName, maxLength: maxDomainLength)
     }
 
-    private func cleanedContextName(_ name: String?, appName: String) -> String? {
+    // instagram.com -> Instagram, benshih.design -> Benshih: humans name the site, not the host.
+    private func domainDerivedDisplayName(_ domain: String) -> String {
+        let labels = domain.lowercased().split(separator: ".").map(String.init)
+        let nameLabels = labels.count > 1 ? Array(labels.dropLast()) : labels
+
+        return nameLabels
+            .map { $0.prefix(1).uppercased() + $0.dropFirst() }
+            .joined()
+    }
+
+    private func cleanedContextName(_ name: String?, appName: String, browserDomain: String? = nil) -> String? {
         guard var name = name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
             return nil
         }
 
         let browser = isBrowser(appName)
-        let titleHadDomain = containsDomainToken(in: name)
-        let titleWasURL = looksLikeRawURL(name)
 
         name = extractMeaningfulRawURLTitle(from: name) ?? name
 
@@ -404,14 +479,18 @@ struct FilenameGenerator {
         name = stripAppSuffixNoise(from: name, appName: appName)
 
         let cleanedTitle: String?
-        if isSearchQueryTitle(name, isBrowser: browser, hadDomain: titleHadDomain || titleWasURL) {
+        if isSearchQueryTitle(name) {
             cleanedTitle = formattedTitle(
                 stripSearchEngineSuffix(from: name),
                 maxWords: maxSearchQueryWords,
                 dropLeadingSearchEngine: true
             )
         } else {
-            cleanedTitle = formattedTitle(name, maxWords: maxTitleWords)
+            let subject = subjectSegment(
+                from: name,
+                skipping: [appName, cleanedAppName(appName), browserDomain ?? ""]
+            )
+            cleanedTitle = formattedTitle(subject, maxWords: maxTitleWords)
         }
 
         guard let cleanedTitle,
@@ -573,34 +652,19 @@ struct FilenameGenerator {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func containsDomainToken(in title: String) -> Bool {
-        title.range(
-            of: #"\b(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}\b"#,
-            options: [.regularExpression, .caseInsensitive]
-        ) != nil
-            || title.range(
-                of: #"\blocalhost(?::\d+)?\b"#,
-                options: [.regularExpression, .caseInsensitive]
-            ) != nil
-    }
-
-    private func isSearchQueryTitle(_ title: String, isBrowser: Bool, hadDomain: Bool) -> Bool {
+    private func isSearchQueryTitle(_ title: String) -> Bool {
         let normalizedTitle = title
             .replacingOccurrences(of: "–", with: "-")
             .replacingOccurrences(of: "—", with: "-")
             .lowercased()
 
-        if normalizedTitle.contains("- google search")
+        return normalizedTitle.contains("- google search")
             || normalizedTitle.contains("| google search")
             || normalizedTitle.contains("- bing")
             || normalizedTitle.contains("| bing")
             || normalizedTitle.contains("- duckduckgo")
             || normalizedTitle.contains("| duckduckgo")
-            || normalizedTitle.contains("search results for") {
-            return true
-        }
-
-        return isBrowser && !hadDomain && titleWords(from: title).count > 6
+            || normalizedTitle.contains("search results for")
     }
 
     private func stripSearchEngineSuffix(from title: String) -> String {

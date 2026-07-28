@@ -12,6 +12,12 @@ final class ContextTracker {
     private let activationSettleDelays: [TimeInterval] = [0.05, 0.15]
     private let maxContextAge: TimeInterval = 10
     private let maxEntryCount = 80
+    // macOS holds screenshots in the floating thumbnail and writes them later with
+    // flush-time filenames, so file/filename timestamps lie. The thumbnail is a window
+    // owned by screencaptureui: a count increase marks the true capture moment.
+    private var pendingCaptureContexts: [AppContext] = []
+    private var lastThumbnailWindowCount = 0
+    private let pendingCaptureMaxAge: TimeInterval = 600
     private let browserNames = [
         "Arc",
         "Brave Browser",
@@ -57,6 +63,47 @@ final class ContextTracker {
         ContextMatcher.latestContext(in: buffer, before: date)
     }
 
+    // Oldest pending capture first: macOS flushes queued thumbnails oldest-first,
+    // so file order matches capture order.
+    func consumePendingCaptureContext() -> AppContext? {
+        pendingCaptureContexts.removeAll {
+            Date().timeIntervalSince($0.timestamp) > pendingCaptureMaxAge
+        }
+
+        guard !pendingCaptureContexts.isEmpty else { return nil }
+        return pendingCaptureContexts.removeFirst()
+    }
+
+    private func detectScreenshotCaptures(context: AppContext) {
+        let thumbnailWindowCount = Self.screencaptureThumbnailWindowCount()
+        defer { lastThumbnailWindowCount = thumbnailWindowCount }
+
+        guard thumbnailWindowCount > lastThumbnailWindowCount else { return }
+
+        // ponytail: if stacked thumbnails ever report as one window, later files in a
+        // burst fall back to filename-bucket matching — degraded, never worse than before.
+        let newCaptureCount = thumbnailWindowCount - lastThumbnailWindowCount
+        pendingCaptureContexts.append(contentsOf: Array(repeating: context, count: newCaptureCount))
+        ScreenshotDebugLogger.log("capture_detected", fields: [
+            "app": context.appName,
+            "new_captures": "\(newCaptureCount)",
+            "pending_count": "\(pendingCaptureContexts.count)",
+            "window_title": context.windowTitle ?? ""
+        ])
+    }
+
+    private static func screencaptureThumbnailWindowCount() -> Int {
+        let windows = CGWindowListCopyWindowInfo(
+            [.optionOnScreenOnly, .excludeDesktopElements],
+            kCGNullWindowID
+        ) as? [[String: Any]] ?? []
+
+        return windows.filter { window in
+            (window[kCGWindowOwnerName as String] as? String)?
+                .caseInsensitiveCompare("screencaptureui") == .orderedSame
+        }.count
+    }
+
     private func captureCurrentContext() {
         captureContext(for: NSWorkspace.shared.frontmostApplication)
     }
@@ -73,11 +120,13 @@ final class ContextTracker {
             windowTitle: details?.windowTitle,
             documentName: details?.documentName,
             tabName: details?.tabName,
-            browserDomain: details?.browserDomain
+            browserDomain: details?.browserDomain,
+            browserPageURL: details?.browserPageURL
         )
 
         buffer.append(context)
         pruneBuffer(relativeTo: timestamp)
+        detectScreenshotCaptures(context: context)
         logContextCaptureIfChanged(
             context,
             isBrowser: isBrowserApp,
@@ -137,18 +186,22 @@ final class ContextTracker {
                 windowTitle: nil,
                 documentName: nil,
                 tabName: nil,
-                browserDomain: nil
+                browserDomain: nil,
+                browserPageURL: nil
             )
         }
+
+        let pageURL = appName.map { isBrowser($0) } == true
+            ? browserURL(in: windowElement)
+            : nil
 
         return WindowContextDetails(
             windowFound: true,
             windowTitle: title(for: windowElement),
             documentName: documentName(for: windowElement),
             tabName: selectedTabTitle(in: windowElement),
-            browserDomain: appName.map { isBrowser($0) } == true
-                ? browserDomain(in: windowElement)
-                : nil
+            browserDomain: pageURL.flatMap { browserDomain(from: $0) },
+            browserPageURL: pageURL
         )
     }
 
@@ -312,11 +365,6 @@ final class ContextTracker {
         let result = AXUIElementCopyAttributeValue(element, kAXSelectedAttribute as CFString, &selectedValue)
         guard result == .success else { return false }
         return selectedValue as? Bool ?? false
-    }
-
-    private func browserDomain(in rootElement: AXUIElement) -> String? {
-        guard let urlString = browserURL(in: rootElement) else { return nil }
-        return browserDomain(from: urlString)
     }
 
     private func browserURL(in rootElement: AXUIElement) -> String? {
@@ -552,6 +600,7 @@ private struct WindowContextDetails {
     let documentName: String?
     let tabName: String?
     let browserDomain: String?
+    let browserPageURL: String?
 }
 
 private struct ContextSignature: Equatable {

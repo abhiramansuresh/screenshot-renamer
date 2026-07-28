@@ -9,6 +9,7 @@ mkdir -p "${MODULE_CACHE}"
 
 {
   cat "${ROOT_DIR}/Screen Renamer/Models/AppContext.swift"
+  cat "${ROOT_DIR}/Screen Renamer/Models/NamingTemplate.swift"
   cat "${ROOT_DIR}/Screen Renamer/Models/OCRToken.swift"
   cat "${ROOT_DIR}/Screen Renamer/Services/WindowMetadataProvider.swift"
   cat "${ROOT_DIR}/Screen Renamer/Services/NoiseFilter.swift"

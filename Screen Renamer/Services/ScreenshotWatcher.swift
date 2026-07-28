@@ -193,7 +193,9 @@ final class ScreenshotWatcher {
             "mark_existing": "\(markExistingScreenshots)"
         ])
 
-        for fileURL in fileURLs {
+        // Flushed thumbnail bursts land together with 1s-apart filenames; process in
+        // filename order so pending capture contexts pair up FIFO.
+        for fileURL in fileURLs.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
             guard isScreenshotCandidate(fileURL) else {
                 if fileURL.lastPathComponent.hasPrefix("Screenshot") {
                     ScreenshotDebugLogger.log("scan_skip_not_candidate", fields: [
@@ -374,6 +376,17 @@ final class ScreenshotWatcher {
     }
 
     private func screenshotContext(for captureTime: ScreenshotCaptureTime) -> AppContext? {
+        // Thumbnail-delayed screenshots get flush-time filenames, so every file
+        // timestamp lies. The capture moment detected via the screencaptureui
+        // thumbnail window is the only honest signal — prefer it when present.
+        if let capturedContext = contextTracker.consumePendingCaptureContext() {
+            ScreenshotDebugLogger.log("context_from_capture_event", fields: [
+                "app": capturedContext.appName,
+                "captured_at": Self.debugDateFormatter.string(from: capturedContext.timestamp)
+            ])
+            return capturedContext
+        }
+
         if let filenameBucket = captureTime.filenameBucket {
             if let context = contextTracker.context(
                 during: filenameBucket,

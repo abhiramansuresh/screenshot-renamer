@@ -124,15 +124,70 @@ enum ScreenshotNamingBenchmark {
         ),
         BenchmarkFixture(
             screenshotPath: "Tests/ScreenshotNamingBenchmark/VLC_In_The_Grey.png",
-            expectedName: "VLC_InTheGrey20261080pWebripX26510bitAAC51YTSBZMp4",
+            expectedName: "VLC_InTheGrey20261080p",
             context: AppContext(
                 timestamp: Date(timeIntervalSince1970: 0),
                 appName: "VLC",
                 windowTitle: "In.The.Grey.2026.1080p.WEBRip.x265.10bit.AAC5.1-[YTS.BZ].mp4"
             ),
             tokens: []
+        ),
+        BenchmarkFixture(
+            screenshotPath: "Tests/ScreenshotNamingBenchmark/Safari_GitHub_TasteSkill.png",
+            expectedName: "GitHub_Leonxlnx_Taste_Skill",
+            context: AppContext(
+                timestamp: Date(timeIntervalSince1970: 0),
+                appName: "Safari",
+                windowTitle: "Leonxlnx/taste-skill: Taste-Skill - gives your AI good taste, stops the AI from generating slop",
+                browserDomain: "github.com"
+            ),
+            tokens: [],
+            template: appDomainTitleTemplate
+        ),
+        BenchmarkFixture(
+            screenshotPath: "Tests/ScreenshotNamingBenchmark/Safari_Instagram_Messages.png",
+            expectedName: "Instagram_Messages",
+            context: AppContext(
+                timestamp: Date(timeIntervalSince1970: 0),
+                appName: "Safari",
+                windowTitle: "(1) Instagram • Messages",
+                browserDomain: "instagram.com"
+            ),
+            tokens: [],
+            template: appDomainTitleTemplate
+        ),
+        BenchmarkFixture(
+            screenshotPath: "Tests/ScreenshotNamingBenchmark/Safari_BenShih_Portfolio.png",
+            expectedName: "Benshih",
+            context: AppContext(
+                timestamp: Date(timeIntervalSince1970: 0),
+                appName: "Safari",
+                windowTitle: "Ben Shih | Product Designer Portfolio, AI Design & Growth Design Case Studies",
+                browserDomain: "benshih.design"
+            ),
+            tokens: [],
+            template: appDomainTitleTemplate
+        ),
+        BenchmarkFixture(
+            screenshotPath: "Tests/ScreenshotNamingBenchmark/Safari_Abhiraman_Portfolio.png",
+            expectedName: "Abhiraman_Abhi_Suresh",
+            context: AppContext(
+                timestamp: Date(timeIntervalSince1970: 0),
+                appName: "Safari",
+                windowTitle: "Abhi Suresh — Senior Product Designer & AI Builder",
+                browserDomain: "abhiraman.in"
+            ),
+            tokens: [],
+            template: appDomainTitleTemplate
         )
     ]
+
+    private static let appDomainTitleTemplate = NamingTemplate(
+        fields: [.app, .domain, .windowTitle],
+        separator: "_",
+        prefix: "",
+        suffix: ""
+    )
 
     private static func generatedName(for fixture: BenchmarkFixture) -> String {
         let originalURL = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -157,6 +212,7 @@ enum ScreenshotNamingBenchmark {
                     windowTitle: fixture.context.windowTitle,
                     documentName: fixture.context.documentName
                 ),
+                template: fixture.template,
                 directoryURL: originalURL.deletingLastPathComponent()
             )
             .deletingPathExtension()
@@ -169,4 +225,5 @@ private struct BenchmarkFixture {
     let expectedName: String
     let context: AppContext
     let tokens: [OCRToken]
+    var template: NamingTemplate = .default
 }

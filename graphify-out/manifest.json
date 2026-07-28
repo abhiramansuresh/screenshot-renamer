@@ -1,0 +1,332 @@
+{
+  "Screen Renamer/App/AppController.swift": {
+    "mtime": 1782315010.18699,
+    "ast_hash": "3af4a08bf632a1848d9a4041b12067e5",
+    "semantic_hash": "3af4a08bf632a1848d9a4041b12067e5"
+  },
+  "Screen Renamer/App/ScreenRenamerApp.swift": {
+    "mtime": 1782265210.4858522,
+    "ast_hash": "5f80f814d2bf2dd52aed74c8d0b48f42",
+    "semantic_hash": "5f80f814d2bf2dd52aed74c8d0b48f42"
+  },
+  "Screen Renamer/Assets.xcassets/MenuBarIcon.imageset/Contents.json": {
+    "mtime": 1779735910.4423468,
+    "ast_hash": "e04ec2289ff65abda13e62ec99201990",
+    "semantic_hash": "e04ec2289ff65abda13e62ec99201990"
+  },
+  "Screen Renamer/Assets.xcassets/MenuBarPausedIcon.imageset/Contents.json": {
+    "mtime": 1779735910.4840674,
+    "ast_hash": "5e770c2ec409d7841c1674f2f74572b4",
+    "semantic_hash": "5e770c2ec409d7841c1674f2f74572b4"
+  },
+  "Screen Renamer/Assets.xcassets/screen_renamer.appiconset/Contents.json": {
+    "mtime": 1779696282.8617928,
+    "ast_hash": "cb25d8883ad1378004ad7385c2ca267d",
+    "semantic_hash": "cb25d8883ad1378004ad7385c2ca267d"
+  },
+  "Screen Renamer/Assets/screen_renamer.icon/icon.json": {
+    "mtime": 1779710962.640402,
+    "ast_hash": "99e807ae4cdfef4a17ab22e2e31b7626",
+    "semantic_hash": "99e807ae4cdfef4a17ab22e2e31b7626"
+  },
+  "Screen Renamer/Models/AppContext.swift": {
+    "mtime": 1783561729.8516176,
+    "ast_hash": "8e68e30c2b6e270c045f08f42a947359",
+    "semantic_hash": "8e68e30c2b6e270c045f08f42a947359"
+  },
+  "Screen Renamer/Models/NamingTemplate.swift": {
+    "mtime": 1782314934.012994,
+    "ast_hash": "c9097819e999862dc30033cb0c337298",
+    "semantic_hash": "c9097819e999862dc30033cb0c337298"
+  },
+  "Screen Renamer/Models/OCRToken.swift": {
+    "mtime": 1780592993.8118122,
+    "ast_hash": "72da7baa15922d78217d5a2005589318",
+    "semantic_hash": "72da7baa15922d78217d5a2005589318"
+  },
+  "Screen Renamer/Services/BrandingSuppressor.swift": {
+    "mtime": 1780631138.5265172,
+    "ast_hash": "b0e3a3b2aad8f6d835966dbf8ac72c2f",
+    "semantic_hash": "b0e3a3b2aad8f6d835966dbf8ac72c2f"
+  },
+  "Screen Renamer/Services/ContextMatcher.swift": {
+    "mtime": 1779730015.0920305,
+    "ast_hash": "f80205be378706dca385769a590c27ca",
+    "semantic_hash": "f80205be378706dca385769a590c27ca"
+  },
+  "Screen Renamer/Services/ContextTracker.swift": {
+    "mtime": 1783580121.6707253,
+    "ast_hash": "dabf851fff347115a21816be49067939",
+    "semantic_hash": "dabf851fff347115a21816be49067939"
+  },
+  "Screen Renamer/Services/DirectoryWatcher.swift": {
+    "mtime": 1779683090.7581837,
+    "ast_hash": "e9c774a6c496cfdf3f321238ddc2ba59",
+    "semantic_hash": "e9c774a6c496cfdf3f321238ddc2ba59"
+  },
+  "Screen Renamer/Services/FilenameGenerator.swift": {
+    "mtime": 1783565059.2968812,
+    "ast_hash": "e7fb9ec26a19aa7c346f2237219b78d5",
+    "semantic_hash": "e7fb9ec26a19aa7c346f2237219b78d5"
+  },
+  "Screen Renamer/Services/LoginItemManager.swift": {
+    "mtime": 1779733232.6782913,
+    "ast_hash": "1f08edbc2d8a6c53865343e0469fb851",
+    "semantic_hash": "1f08edbc2d8a6c53865343e0469fb851"
+  },
+  "Screen Renamer/Services/NoiseFilter.swift": {
+    "mtime": 1780511579.1555572,
+    "ast_hash": "cd83cc1b74ff52eaa109b6f799b900db",
+    "semantic_hash": "cd83cc1b74ff52eaa109b6f799b900db"
+  },
+  "Screen Renamer/Services/OCRProcessor.swift": {
+    "mtime": 1783561726.374644,
+    "ast_hash": "3413ca4fdf43d821f19d2b894a634752",
+    "semantic_hash": "3413ca4fdf43d821f19d2b894a634752"
+  },
+  "Screen Renamer/Services/PermissionManager.swift": {
+    "mtime": 1779734401.1511207,
+    "ast_hash": "6be164f9695b9c10d453b2995ff96679",
+    "semantic_hash": "6be164f9695b9c10d453b2995ff96679"
+  },
+  "Screen Renamer/Services/ScreenshotDebugLogger.swift": {
+    "mtime": 1782265270.659237,
+    "ast_hash": "83a71b9583be18fb6a30c263f756fa02",
+    "semantic_hash": "83a71b9583be18fb6a30c263f756fa02"
+  },
+  "Screen Renamer/Services/ScreenshotLocationResolver.swift": {
+    "mtime": 1779734384.4846554,
+    "ast_hash": "0d9bb3b8deefbee715f11b94cddfad67",
+    "semantic_hash": "0d9bb3b8deefbee715f11b94cddfad67"
+  },
+  "Screen Renamer/Services/ScreenshotOrganizer.swift": {
+    "mtime": 1782265195.2891653,
+    "ast_hash": "41bbbe32dedc020b8175173523df65f9",
+    "semantic_hash": "41bbbe32dedc020b8175173523df65f9"
+  },
+  "Screen Renamer/Services/ScreenshotProcessor.swift": {
+    "mtime": 1782314967.3057492,
+    "ast_hash": "144b558fbad85cb4f17cd1a20176970a",
+    "semantic_hash": "144b558fbad85cb4f17cd1a20176970a"
+  },
+  "Screen Renamer/Services/ScreenshotWatcher.swift": {
+    "mtime": 1783580132.0946379,
+    "ast_hash": "b390f5b61a6e7bd62882e23d13c58323",
+    "semantic_hash": "b390f5b61a6e7bd62882e23d13c58323"
+  },
+  "Screen Renamer/Services/TextScorer.swift": {
+    "mtime": 1780631154.3549392,
+    "ast_hash": "5b8298284d35fd77812d55bcc0ae0b9c",
+    "semantic_hash": "5b8298284d35fd77812d55bcc0ae0b9c"
+  },
+  "Screen Renamer/Services/WindowMetadataProvider.swift": {
+    "mtime": 1780632211.223905,
+    "ast_hash": "f55256d9f37c312c0b7e56511048685a",
+    "semantic_hash": "f55256d9f37c312c0b7e56511048685a"
+  },
+  "Screen Renamer/UI/MenuBarView.swift": {
+    "mtime": 1782315014.3596373,
+    "ast_hash": "01fca5373d0461f794ff1e0142a8d1fd",
+    "semantic_hash": "01fca5373d0461f794ff1e0142a8d1fd"
+  },
+  "Screen Renamer/UI/SettingsView.swift": {
+    "mtime": 1782315231.666277,
+    "ast_hash": "420982c32d586fe60afe7affbdbe27da",
+    "semantic_hash": "420982c32d586fe60afe7affbdbe27da"
+  },
+  "Screen RenamerTests/BrandingSuppressorTests.swift": {
+    "mtime": 1780631168.0468712,
+    "ast_hash": "03413c9a3cfbc522fe155a5de546a520",
+    "semantic_hash": "03413c9a3cfbc522fe155a5de546a520"
+  },
+  "Screen RenamerTests/OCRNamingTests.swift": {
+    "mtime": 1782315064.5582728,
+    "ast_hash": "45ada4c529a25c6388eaf30ec6f072b2",
+    "semantic_hash": "45ada4c529a25c6388eaf30ec6f072b2"
+  },
+  "Screen RenamerTests/WindowMetadataProviderTests.swift": {
+    "mtime": 1780630463.0502539,
+    "ast_hash": "eb7bfc2b0612905f35f788d02ec8e3fb",
+    "semantic_hash": "eb7bfc2b0612905f35f788d02ec8e3fb"
+  },
+  "Tests/ScreenshotNamingBenchmark/BenchmarkCLI.swift": {
+    "mtime": 1780629921.5497043,
+    "ast_hash": "2fd91a4f6a79e99109ee6d2631ef1d7b",
+    "semantic_hash": "2fd91a4f6a79e99109ee6d2631ef1d7b"
+  },
+  "Tests/ScreenshotNamingBenchmark/BenchmarkCases.swift": {
+    "mtime": 1783565107.981293,
+    "ast_hash": "2397e1d7a8a72745879d79e1afeed060",
+    "semantic_hash": "2397e1d7a8a72745879d79e1afeed060"
+  },
+  "Tests/ScreenshotNamingBenchmark/ScreenshotNamingBenchmarkTests.swift": {
+    "mtime": 1782315103.0224001,
+    "ast_hash": "8555060965632a91250bf2d3eb2216da",
+    "semantic_hash": "8555060965632a91250bf2d3eb2216da"
+  },
+  "Tests/ScreenshotNamingBenchmark/run_benchmark.sh": {
+    "mtime": 1783561787.6418657,
+    "ast_hash": "7408f6f160d452cf5622a43e53b776a6",
+    "semantic_hash": "7408f6f160d452cf5622a43e53b776a6"
+  },
+  "README.md": {
+    "mtime": 1781228936.8161974,
+    "ast_hash": "ee39ef453438ef941253f027304a9115",
+    "semantic_hash": "ee39ef453438ef941253f027304a9115"
+  },
+  "Tests/ScreenshotNamingBenchmark/BASELINE.md": {
+    "mtime": 1780630038.9003427,
+    "ast_hash": "15b5eddce80e05b89683c62c94a59a7e",
+    "semantic_hash": "15b5eddce80e05b89683c62c94a59a7e"
+  },
+  "Tests/ScreenshotNamingBenchmark/PHASE2.md": {
+    "mtime": 1780630610.8813186,
+    "ast_hash": "bda049e4a5b4e1b8390e03032e23f1bf",
+    "semantic_hash": "bda049e4a5b4e1b8390e03032e23f1bf"
+  },
+  "Tests/ScreenshotNamingBenchmark/PHASE3.md": {
+    "mtime": 1780631244.520121,
+    "ast_hash": "d148ea9e8d76bf5cb9fb23b9f4cb8a6a",
+    "semantic_hash": "d148ea9e8d76bf5cb9fb23b9f4cb8a6a"
+  },
+  "Tests/ScreenshotNamingBenchmark/PHASE4.md": {
+    "mtime": 1780640693.929763,
+    "ast_hash": "630c94b58a1e18e77235d818b4520310",
+    "semantic_hash": "630c94b58a1e18e77235d818b4520310"
+  },
+  "Tests/ScreenshotNamingBenchmark/PHASE5.md": {
+    "mtime": 1781228937.0128143,
+    "ast_hash": "73b55192360f924501a57fa481e0bd33",
+    "semantic_hash": "73b55192360f924501a57fa481e0bd33"
+  },
+  "screen_renamer_mvp_spec.md": {
+    "mtime": 1781228936.9130151,
+    "ast_hash": "7f1f45147044181cc21dbf166a2275d3",
+    "semantic_hash": "7f1f45147044181cc21dbf166a2275d3"
+  },
+  "Screen Renamer/Assets.xcassets/MenuBarIcon.imageset/screen_renamer_icon.png": {
+    "mtime": 1779711068.4256427,
+    "ast_hash": "c02a350d173ebdd07720a38b06a6c3cf",
+    "semantic_hash": "c02a350d173ebdd07720a38b06a6c3cf"
+  },
+  "Screen Renamer/Assets.xcassets/MenuBarPausedIcon.imageset/screen_renamer_icon_paused.png": {
+    "mtime": 1779731966.9473834,
+    "ast_hash": "82023ca6fe1fbf5cce628515ea827f04",
+    "semantic_hash": "82023ca6fe1fbf5cce628515ea827f04"
+  },
+  "Screen Renamer/Assets.xcassets/screen_renamer.appiconset/icon_128x128.png": {
+    "mtime": 1779711068.8995507,
+    "ast_hash": "963f2dd1bb05cc8663784b9628e6c432",
+    "semantic_hash": "963f2dd1bb05cc8663784b9628e6c432"
+  },
+  "Screen Renamer/Assets.xcassets/screen_renamer.appiconset/icon_128x128@2x.png": {
+    "mtime": 1779711068.9969418,
+    "ast_hash": "c6bc815253e7f1dc47d096693250ae81",
+    "semantic_hash": "c6bc815253e7f1dc47d096693250ae81"
+  },
+  "Screen Renamer/Assets.xcassets/screen_renamer.appiconset/icon_16x16.png": {
+    "mtime": 1779711068.539702,
+    "ast_hash": "a1ca1e6e6880cbf7d30f295808698ac3",
+    "semantic_hash": "a1ca1e6e6880cbf7d30f295808698ac3"
+  },
+  "Screen Renamer/Assets.xcassets/screen_renamer.appiconset/icon_16x16@2x.png": {
+    "mtime": 1779711068.6284795,
+    "ast_hash": "731fc6c3dc967be48c8e999fabc25b34",
+    "semantic_hash": "731fc6c3dc967be48c8e999fabc25b34"
+  },
+  "Screen Renamer/Assets.xcassets/screen_renamer.appiconset/icon_256x256.png": {
+    "mtime": 1779711069.085336,
+    "ast_hash": "c6bc815253e7f1dc47d096693250ae81",
+    "semantic_hash": "c6bc815253e7f1dc47d096693250ae81"
+  },
+  "Screen Renamer/Assets.xcassets/screen_renamer.appiconset/icon_256x256@2x.png": {
+    "mtime": 1779711069.1866188,
+    "ast_hash": "d7406e57e7eb88bdd55efa65a6dfc26e",
+    "semantic_hash": "d7406e57e7eb88bdd55efa65a6dfc26e"
+  },
+  "Screen Renamer/Assets.xcassets/screen_renamer.appiconset/icon_32x32.png": {
+    "mtime": 1779711068.7159564,
+    "ast_hash": "731fc6c3dc967be48c8e999fabc25b34",
+    "semantic_hash": "731fc6c3dc967be48c8e999fabc25b34"
+  },
+  "Screen Renamer/Assets.xcassets/screen_renamer.appiconset/icon_32x32@2x.png": {
+    "mtime": 1779711068.801335,
+    "ast_hash": "abfe9ccde887a922734ee1419615776a",
+    "semantic_hash": "abfe9ccde887a922734ee1419615776a"
+  },
+  "Screen Renamer/Assets.xcassets/screen_renamer.appiconset/icon_512x512.png": {
+    "mtime": 1779711069.2807083,
+    "ast_hash": "d7406e57e7eb88bdd55efa65a6dfc26e",
+    "semantic_hash": "d7406e57e7eb88bdd55efa65a6dfc26e"
+  },
+  "Screen Renamer/Assets.xcassets/screen_renamer.appiconset/icon_512x512@2x.png": {
+    "mtime": 1779711069.2850075,
+    "ast_hash": "5048b5a7940cf4af30de0c6b5c8d55c3",
+    "semantic_hash": "5048b5a7940cf4af30de0c6b5c8d55c3"
+  },
+  "Screen Renamer/Assets/IconSet/screen_renamer-iOS-ClearDark-1024x1024@1x.png": {
+    "mtime": 1779710836.6972334,
+    "ast_hash": "f26944c013e23a4f26c4d593e40d97d8",
+    "semantic_hash": "f26944c013e23a4f26c4d593e40d97d8"
+  },
+  "Screen Renamer/Assets/IconSet/screen_renamer-iOS-ClearLight-1024x1024@1x.png": {
+    "mtime": 1779710836.6982126,
+    "ast_hash": "5954f1141762a68eba1423a4071f5bc5",
+    "semantic_hash": "5954f1141762a68eba1423a4071f5bc5"
+  },
+  "Screen Renamer/Assets/IconSet/screen_renamer-iOS-Dark-1024x1024@1x.png": {
+    "mtime": 1779710836.6995366,
+    "ast_hash": "acf43ad6bc133516d2d9ed5e80b34778",
+    "semantic_hash": "acf43ad6bc133516d2d9ed5e80b34778"
+  },
+  "Screen Renamer/Assets/IconSet/screen_renamer-iOS-Default-1024x1024@1x.png": {
+    "mtime": 1779710836.7005389,
+    "ast_hash": "5048b5a7940cf4af30de0c6b5c8d55c3",
+    "semantic_hash": "5048b5a7940cf4af30de0c6b5c8d55c3"
+  },
+  "Screen Renamer/Assets/IconSet/screen_renamer-iOS-TintedDark-1024x1024@1x.png": {
+    "mtime": 1779710836.7010221,
+    "ast_hash": "f41909cff1489f73a793123b83e75809",
+    "semantic_hash": "f41909cff1489f73a793123b83e75809"
+  },
+  "Screen Renamer/Assets/IconSet/screen_renamer-iOS-TintedLight-1024x1024@1x.png": {
+    "mtime": 1779710836.7013688,
+    "ast_hash": "6ac3774dcc0cc81605a55ad38fe9ac5f",
+    "semantic_hash": "6ac3774dcc0cc81605a55ad38fe9ac5f"
+  },
+  "Screen Renamer/Assets/screen_renamer.icon/Assets/Frame 3.svg": {
+    "mtime": 1779710962.640404,
+    "ast_hash": "93781099afccdd2d995896a284f1793b",
+    "semantic_hash": "93781099afccdd2d995896a284f1793b"
+  },
+  "Screen Renamer/Assets/screen_renamer.icon/Assets/Frame.svg": {
+    "mtime": 1779710962.640407,
+    "ast_hash": "f41ebd1f46c122447a77d220c47f1ce4",
+    "semantic_hash": "f41ebd1f46c122447a77d220c47f1ce4"
+  },
+  "Screen Renamer/Assets/screen_renamer.icon/Assets/Pencil 2.svg": {
+    "mtime": 1779710962.640405,
+    "ast_hash": "01b8d0ed1c974fef559dea28b76fb77b",
+    "semantic_hash": "01b8d0ed1c974fef559dea28b76fb77b"
+  },
+  "Screen Renamer/Assets/screen_renamer.icon/Assets/Pencil.svg": {
+    "mtime": 1779710962.640406,
+    "ast_hash": "02ed4c8278719fa928aacbb8c1f19291",
+    "semantic_hash": "02ed4c8278719fa928aacbb8c1f19291"
+  },
+  "Screen Renamer/Assets/screen_renamer_icon.png": {
+    "mtime": 1779706816.5900254,
+    "ast_hash": "c02a350d173ebdd07720a38b06a6c3cf",
+    "semantic_hash": "c02a350d173ebdd07720a38b06a6c3cf"
+  },
+  "Screen Renamer/Assets/screen_renamer_icon_paused.png": {
+    "mtime": 1779731850.2311506,
+    "ast_hash": "82023ca6fe1fbf5cce628515ea827f04",
+    "semantic_hash": "82023ca6fe1fbf5cce628515ea827f04"
+  },
+  "docs/assets/screen-renamer-banner.png": {
+    "mtime": 1779764585.9926772,
+    "ast_hash": "aa14fce16c422e7b234f28ed91c12d85",
+    "semantic_hash": "aa14fce16c422e7b234f28ed91c12d85"
+  }
+}

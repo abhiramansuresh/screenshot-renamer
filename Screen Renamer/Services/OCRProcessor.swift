@@ -12,9 +12,13 @@ struct OCRProcessor {
 
     private static func recognizeTextSynchronously(in imageURL: URL) throws -> OCRResult {
         let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .fast
+        // .fast mode returns capped ~0.5 confidences, which permanently failed the
+        // 0.62 minimum in FilenameGenerator and produced garbled tokens ("8uild", "laude").
+        // .accurate gives graded confidences and clean words; extra latency is fine
+        // for a background rename.
+        request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
-        request.usesLanguageCorrection = false
+        request.usesLanguageCorrection = true
 
         let handler = VNImageRequestHandler(url: imageURL, options: [:])
         try handler.perform([request])
