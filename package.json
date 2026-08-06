@@ -1,0 +1,8 @@
+{
+  "name": "screen-renamer",
+  "private": true,
+  "scripts": {
+    "build:debug": "xcodebuild -project \"Screen Renamer.xcodeproj\" -scheme \"Screen Renamer\" -configuration Debug build",
+    "build:prod": "xcodebuild -project \"Screen Renamer.xcodeproj\" -scheme \"Screen Renamer\" -configuration Release build"
+  }
+}

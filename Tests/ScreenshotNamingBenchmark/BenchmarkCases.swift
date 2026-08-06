@@ -132,6 +132,19 @@ enum ScreenshotNamingBenchmark {
             ),
             tokens: []
         ),
+        // Proves the NER-ranked segment pick (FilenameGenerator.bestCandidate): the naive
+        // "first segment" heuristic would pick "Q3 Planning"; the entity-bearing second
+        // segment ("Acme" tags as an organization) should win instead.
+        BenchmarkFixture(
+            screenshotPath: "Tests/ScreenshotNamingBenchmark/Notion_Q3_Planning.png",
+            expectedName: "Notion_Acme_Corp_Budget",
+            context: AppContext(
+                timestamp: Date(timeIntervalSince1970: 0),
+                appName: "Notion",
+                windowTitle: "Q3 Planning — Acme Corp Budget"
+            ),
+            tokens: []
+        ),
         BenchmarkFixture(
             screenshotPath: "Tests/ScreenshotNamingBenchmark/Safari_GitHub_TasteSkill.png",
             expectedName: "GitHub_Leonxlnx_Taste_Skill",

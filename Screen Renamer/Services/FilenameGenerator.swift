@@ -188,12 +188,45 @@ struct FilenameGenerator {
             .filter { !$0.isEmpty }
         let skipTokens = skipNames.filter { !$0.isEmpty }.map(comparableTokens)
 
-        let subject = candidates.first { candidate in
+        // Entities need sentence context to be recognized reliably ("Acme" tags inside
+        // "Q3 Planning — Acme Corp Budget" but not inside the isolated fragment "Acme Corp
+        // Budget"), so this runs once on the whole title, before it's split into segments.
+        let entityPhrases = SubjectExtractor.namedEntityPhrases(in: cleanedTitle)
+
+        return bestCandidate(among: candidates, skipping: skipTokens, entityPhrases: entityPhrases)
+            ?? candidates.first
+            ?? cleanedTitle
+    }
+
+    // Among the eligible segments (not low-quality, not just the app/domain name), prefer
+    // one naming an organization/person/place over a blindly-first one: "Q3 Planning —
+    // Acme Corp Budget" should read "Acme Corp Budget", not "Q3 Planning". Falls back to
+    // the old first-eligible-segment behavior when no segment carries a named entity.
+    private func bestCandidate(
+        among candidates: [String],
+        skipping skipTokens: [Set<String>],
+        entityPhrases: [String]
+    ) -> String? {
+        let eligible = candidates.filter { candidate in
             !isLowQualityTitle(candidate)
                 && !skipTokens.contains { comparableTokens(candidate).isSubset(of: $0) }
         }
+        guard let firstEligible = eligible.first else { return nil }
 
-        return subject ?? candidates.first ?? cleanedTitle
+        guard let entityCandidate = eligible.first(where: { candidate in
+            entityPhrases.contains { candidate.range(of: $0, options: .caseInsensitive) != nil }
+        }) else {
+            return firstEligible
+        }
+
+        if entityCandidate != firstEligible {
+            ScreenshotDebugLogger.log("subject_entity_override", fields: [
+                "chosen": entityCandidate,
+                "naive_first": firstEligible
+            ])
+        }
+
+        return entityCandidate
     }
 
     private func cleanedTitleSubject(_ value: String, appName: String, browserDomain: String?) -> String {
